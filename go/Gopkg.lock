@@ -11,7 +11,7 @@
   branch = "master"
   name = "github.com/lagoon-platform/engine"
   packages = ["."]
-  revision = "e53beaab2bdada2cff9378ec660965c5218ef295"
+  revision = "422063a4e1d8638c6d8a0b3773027173aee02506"
 
 [[projects]]
   name = "gopkg.in/yaml.v2"

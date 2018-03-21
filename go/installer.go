@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -26,6 +27,14 @@ func main() {
 	}
 	parseDescriptor(descriptor)
 
+	if os.Getenv("http_proxy") == "" {
+		log.Fatal(fmt.Errorf(ERROR_REQUIRED_ENV, "http_proxy"))
+	}
+	logger.Printf("Using http proxy", os.Getenv("http_proxy"))
+	if os.Getenv("https_proxy") == "" {
+		log.Fatal(fmt.Errorf(ERROR_REQUIRED_ENV, "https_proxy"))
+	}
+	logger.Printf("Using https proxy", os.Getenv("https_proxy"))
 	fileName := "container_output.json"
 	f, err := os.Create(fileName)
 	if err != nil {

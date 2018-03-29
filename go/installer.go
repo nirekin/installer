@@ -105,6 +105,4 @@ func checkProxy() {
 	if os.Getenv("https_proxy") == "" {
 		loggerErr.Fatal(fmt.Errorf(ERROR_REQUIRED_ENV, "https_proxy"))
 	}
-	loggerLog.Printf("Using https proxy %s", os.Getenv("https_proxy"))
-	loggerLog.Printf("Using http proxy %s", os.Getenv("http_proxy"))
 }

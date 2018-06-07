@@ -26,31 +26,26 @@ type NodeExtraVars struct {
 // This method is supposed to be launched via an entrypoint through the Dockerfile
 // used to generate the image.
 func main() {
+
 	loggerLog = log.New(os.Stdout, engine.InstallerLogPrefix, log.Ldate|log.Ltime|log.Lmicroseconds)
 	loggerLog.Println(LOG_STARTING)
-
-	// Get the env var telling if we are in create or update mode
-	create, err := engine.CheckCUMode()
-
-	if err != nil {
-		loggerErr.Fatal(err)
-	}
-	loggerLog.Printf(LOG_INSTALLER_MODE, create)
 
 	// We check if the proxy is well defined, the proxy is required in order
 	// to be capable to download the environment descriptor content and all its
 	// related components
 	httpProxy, httpsProxy, noProxy := engine.CheckProxy()
 
-	var client string
 	// If we are in creation mode we check if the environment descriptor is well
 	// specified
-	if create {
-		client = os.Getenv(engine.ClientEnvVariableKey)
-		if client == "" {
-			loggerErr.Fatalf(ERROR_REQUIRED_ENV, engine.ClientEnvVariableKey)
-		}
-		loggerLog.Printf(LOG_CREATION_FOR_CLIENT, client)
+	client := os.Getenv(engine.ClientEnvVariableKey)
+	if client == "" {
+		loggerErr.Fatalf(ERROR_REQUIRED_ENV, engine.ClientEnvVariableKey)
+	}
+	loggerLog.Printf(LOG_CREATION_FOR_CLIENT, client)
+
+	ef, err := engine.ClientExchangeFolder(engine.InstallerVolume, "")
+	if err != nil {
+		loggerErr.Fatalf(ERROR_CREATING_EXCHANGE_FOLDER, engine.ClientEnvVariableKey)
 	}
 
 	// 	Get all the content to create.
@@ -65,11 +60,13 @@ func main() {
 		loggerErr.Println(e)
 		loggerErr.Fatalf(ERROR_PARSING_DESCRIPTOR, e.Error())
 	}
+
 	// Check if a session already exists
 	var createSession engine.CreationSession
 
 	var d string
-	b, s := engine.HasCreationSession(engine.InstallerVolume)
+
+	b, s := engine.HasCreationSession(ef)
 	if !b {
 		createSession = engine.CreationSession{Client: client, Uids: make(map[string]string)}
 	} else {
@@ -105,12 +102,20 @@ func main() {
 				engine.SaveProxy(loggerLog, d, httpProxy, httpsProxy, noProxy)
 			}
 		}
+
 		// TODO REMOVE HARDCODED STUFF AND BASED THIS ON THE RECEIVED ENV FILE
 		os.Setenv("ANSIBLE_INVENTORY", "/opt/lagoon/ansible/aws-provider/scripts/ec2.py")
 		os.Setenv("EC2_INI_PATH", "/opt/lagoon/ansible/aws-provider/scripts/ec2.ini")
 		os.Setenv("http_proxy", httpProxy)
 		os.Setenv("https_proxy", httpsProxy)
 		// TODO ENV VARIABLES SHOULD BE PASSED TO THE PLAYBOOK LAUNCHER
+
+		//i := 1
+		//for i <= 20 {
+		//	loggerLog.Printf("log content for testing %d", i)
+		//	i = i + 1
+		//	time.Sleep(time.Millisecond * 1000)
+		//}
 
 		// TODO WAIT FOR THE END OF THE NEW COMPONENT SPECIFICATIONS
 		// AND ADAPT THE PLAYBOOK NAME AND TAKE IN ACCOUNT THE HOOKS

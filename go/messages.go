@@ -3,8 +3,9 @@ package main
 const (
 
 	// Error messages
-	ERROR_REQUIRED_ENV       string = "the environment variable \"%s\" should be defined"
-	ERROR_PARSING_DESCRIPTOR string = "Error parsing the descriptor %s"
+	ERROR_REQUIRED_ENV             string = "the environment variable \"%s\" should be defined"
+	ERROR_PARSING_DESCRIPTOR       string = "Error parsing the descriptor %s"
+	ERROR_CREATING_EXCHANGE_FOLDER string = "Error creating the exchange folder %s"
 
 	// Log messages
 	LOG_STARTING             string = "Starting the installer..."

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path"
@@ -17,7 +18,6 @@ var (
 	httpsProxy  string
 	noProxy     string
 	loggerLog   *log.Logger
-	loggerErr   *log.Logger
 	lagoon      engine.Lagoon
 	lagoonError error
 	ef          engine.ExchangeFolder
@@ -37,42 +37,73 @@ type NodeExtraVars struct {
 // This method is supposed to be launched via an entrypoint through the Dockerfile
 // used to generate the image.
 func main() {
-
 	loggerLog = log.New(os.Stdout, engine.InstallerLogPrefix, log.Ldate|log.Ltime|log.Lmicroseconds)
 	loggerLog.Println(LOG_STARTING)
+	e := run()
+	if e != nil {
+		loggerLog.Fatal(e)
+	}
+}
+
+func run() (e error) {
 	a := os.Getenv(engine.ActionEnvVariableKey)
 	switch a {
 	case engine.ActionCreate.String():
-		runCreate()
+		e = runCreate()
 	case engine.ActionCheck.String():
-		runCheck()
+		e = runCheck()
 	default:
 		if a == "" {
 			a = "No action specified"
 		}
-		loggerErr.Fatalf(ERROR_UNSUPORTED_ACTION, a)
+		e = fmt.Errorf(ERROR_UNSUPORTED_ACTION, a)
 	}
+	return
 }
 
-func runCreate() {
-	getProxy()
-	getClient()
-	getExchangeFoldef()
-	getLocation()
-	createLagoon()
-	failOnLagoonError()
-	runCreation()
+func runCreate() (e error) {
+	calls := []func() error{
+		fproxy,
+		fclient,
+		fexchangeFoldef,
+		flocation,
+		flagoon,
+		ffailOnLagoonError,
+		fcreate,
+	}
+	e = launch(calls)
+	if e != nil {
+		return
+	}
+	return
 }
 
-func runCheck() {
-	getProxy()
-	getExchangeFoldef()
-	getLocation()
-	createLagoon()
-	logLagoon()
+func runCheck() (e error) {
+	calls := []func() error{
+		fproxy,
+		fexchangeFoldef,
+		flocation,
+		flagoon,
+		flogLagoon,
+	}
+	e = launch(calls)
+	if e != nil {
+		return
+	}
+	return
 }
 
-func runCreation() {
+func launch(fs []func() error) error {
+	for _, f := range fs {
+		e := f()
+		if e != nil {
+			return e
+		}
+	}
+	return nil
+}
+
+func fcreate() error {
 	// Check if a session already exists
 	var createSession engine.CreationSession
 	var d string
@@ -96,7 +127,7 @@ func runCreation() {
 
 			b, e := n.ExtraVars(client, uid, engine.InstallerVolume)
 			if e != nil {
-				loggerErr.Fatal(e)
+				return (e)
 			}
 			createSession.Add(n.Name, uid)
 
@@ -105,7 +136,7 @@ func runCreation() {
 
 			b, e = n.DockerVars()
 			if e != nil {
-				loggerErr.Fatal(e)
+				return (e)
 			}
 			engine.SaveFile(loggerLog, d, engine.NodeDockerFileName, b)
 
@@ -136,82 +167,89 @@ func runCreation() {
 
 	by, e := createSession.Content()
 	if e != nil {
-		loggerErr.Fatal(e)
+		return e
 	}
 	engine.SaveFile(loggerLog, engine.InstallerVolume, engine.CreationSessionFileName, by)
 
 	// Dummy log line just for testing purposes
 	//loggerLog.Println("Last Super log from installer ")
+	return nil
 }
 
-func logLagoon() {
+func flogLagoon() error {
 	ve := lagoonError
 	if ve != nil {
 		vErrs, ok := ve.(model.ValidationErrors)
 		// if the error is not a "validation error" then we return it
 		if !ok {
-			loggerErr.Fatalf(ERROR_PARSING_ENVIRONMENT, ve.Error())
+			return fmt.Errorf(ERROR_PARSING_ENVIRONMENT, ve.Error())
 		} else {
 
 			loggerLog.Printf(ve.Error())
 
 			b, e := vErrs.JSonContent()
 			if e != nil {
-				loggerErr.Fatal(e)
+				return fmt.Errorf(ERROR_GENERIC, e)
 			}
 			// print both errors and warnings into the report file
 			engine.SaveFile(loggerLog, ef.Output.Path(), ERROR_CREATING_REPORT_FILE, b)
 			if vErrs.HasErrors() {
 				// in case of validation error we stop
 
-				loggerErr.Fatalf(ERROR_PARSING_ENVIRONMENT, ve.Error())
+				return fmt.Errorf(ERROR_PARSING_ENVIRONMENT, ve.Error())
 			}
 		}
 	} else {
 		loggerLog.Printf(LOG_VALIDATION_SUCCESSFUL)
 	}
-
+	return nil
 }
 
-func getExchangeFoldef() {
+func fexchangeFoldef() error {
 	var err error
 	ef, err = engine.ClientExchangeFolder(engine.InstallerVolume, "")
 	if err != nil {
-		loggerErr.Fatalf(ERROR_CREATING_EXCHANGE_FOLDER, engine.ClientEnvVariableKey)
+		return fmt.Errorf(ERROR_CREATING_EXCHANGE_FOLDER, engine.ClientEnvVariableKey)
 	}
+	return nil
 }
 
-func getLocation() {
+func flocation() error {
 	location = os.Getenv(engine.StarterEnvVariableKey)
 	loggerLog.Printf("GetLocation \"%s\"", location)
 	if location == "" {
-		loggerErr.Fatalf(ERROR_REQUIRED_ENV, engine.StarterEnvVariableKey)
+		return fmt.Errorf(ERROR_REQUIRED_ENV, engine.StarterEnvVariableKey)
 	}
+	return nil
 }
 
-func getClient() {
+func fclient() error {
 	client = os.Getenv(engine.ClientEnvVariableKey)
 	if client == "" {
-		loggerErr.Fatalf(ERROR_REQUIRED_ENV, engine.ClientEnvVariableKey)
+		return fmt.Errorf(ERROR_REQUIRED_ENV, engine.ClientEnvVariableKey)
 	}
 	loggerLog.Printf(LOG_CREATION_FOR_CLIENT, client)
+	return nil
 }
 
-func getProxy() {
+func fproxy() error {
 	// We check if the proxy is well defined, the proxy is required in order
 	// to be capable to download the environment descriptor content and all its
 	// related components
 	httpProxy, httpsProxy, noProxy = engine.CheckProxy()
+	return nil
 }
 
-func createLagoon() {
+func flagoon() error {
 	// TODO CHECK THE REAL VERSION HERE ONCE IT WILL BE COMMITED BY THE COMPONENT
 	lagoon, lagoonError = engine.Create(loggerLog, "/var/lib/lagoon", location, "")
+	return nil
 }
 
-func failOnLagoonError() {
+func ffailOnLagoonError() error {
 	if lagoonError != nil {
-		loggerErr.Println(lagoonError)
-		loggerErr.Fatalf(ERROR_PARSING_DESCRIPTOR, lagoonError.Error())
+		loggerLog.Println(lagoonError)
+		return fmt.Errorf(ERROR_PARSING_DESCRIPTOR, lagoonError.Error())
 	}
+	return nil
 }

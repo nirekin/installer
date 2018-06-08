@@ -9,6 +9,7 @@ const (
 	ERROR_CREATING_EXCHANGE_FOLDER string = "Error creating the exchange folder %s"
 	ERROR_UNSUPORTED_ACTION        string = "the action \"%s\" is not supported by the installer"
 	ERROR_CREATING_REPORT_FILE     string = "Error creating the report file  %s"
+	ERROR_GENERIC                  string = "An error occurred  %s:"
 
 	// Log messages
 	LOG_STARTING             string = "Starting the installer..."

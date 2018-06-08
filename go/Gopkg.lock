@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  name = "github.com/davecgh/go-spew"
+  packages = ["spew"]
+  revision = "346938d642f2ec3594ed81d874461961cd0faa76"
+  version = "v1.1.0"
+
+[[projects]]
   name = "github.com/emirpasic/gods"
   packages = [
     "containers",
@@ -36,7 +42,7 @@
   branch = "master"
   name = "github.com/lagoon-platform/engine"
   packages = ["."]
-  revision = "f261507096496e6b5ab399d0d94740d53eb17b31"
+  revision = "c7426a55717fa53912bc9ded8c111a5bf3ee7630"
 
 [[projects]]
   branch = "master"
@@ -57,6 +63,12 @@
   version = "v0.2.0"
 
 [[projects]]
+  name = "github.com/pmezard/go-difflib"
+  packages = ["difflib"]
+  revision = "792786c7400a136282c1664665ae0a8db921c6c2"
+  version = "v1.0.0"
+
+[[projects]]
   name = "github.com/sergi/go-diff"
   packages = ["diffmatchpatch"]
   revision = "1744e2970ca51c86172c8190fadad617561ed6e7"
@@ -72,6 +84,12 @@
   ]
   revision = "f187355171c936ac84a82793659ebb4936bc1c23"
   version = "v1.3.0"
+
+[[projects]]
+  name = "github.com/stretchr/testify"
+  packages = ["assert"]
+  revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
+  version = "v1.2.1"
 
 [[projects]]
   branch = "master"
@@ -99,19 +117,19 @@
     "ssh/agent",
     "ssh/knownhosts"
   ]
-  revision = "75e913eb8a8e3d31a97b216de09de106a7b07681"
+  revision = "b47b1587369238182299fe4dad77d05b8b461e06"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context"]
-  revision = "9ef9f5bb98a1fdc41f8cf6c250a4404b4085e389"
+  revision = "1e491301e022f8f977054da4c2d852decd59571f"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["windows"]
-  revision = "77b0e4315053a57ed2962443614bdb28db152054"
+  revision = "9527bec2660bd847c050fda93a0f0c6dee0800bb"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -171,7 +189,7 @@
     "plumbing/transport/ssh",
     "storage",
     "storage/filesystem",
-    "storage/filesystem/internal/dotgit",
+    "storage/filesystem/dotgit",
     "storage/memory",
     "utils/binary",
     "utils/diff",
@@ -182,8 +200,8 @@
     "utils/merkletrie/internal/frame",
     "utils/merkletrie/noder"
   ]
-  revision = "57570e84f8c5739f0f4a59387493e590e709dde9"
-  version = "v4.4.0"
+  revision = "b23570073eaee3489e5e3d666f22ba5cbeb53243"
+  version = "v4.4.1"
 
 [[projects]]
   name = "gopkg.in/warnings.v0"
@@ -200,6 +218,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9f41f740b6f97a0c435c480fcd54a4043d7dd070fef7ca5f2bf27b47af2041c7"
+  inputs-digest = "d1f7690ed84c1211c87d0f1ecdc80b5c3cb825d631fa252578408d4baacd907c"
   solver-name = "gps-cdcl"
   solver-version = 1

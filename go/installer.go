@@ -216,7 +216,6 @@ func fexchangeFoldef() error {
 
 func flocation() error {
 	location = os.Getenv(engine.StarterEnvVariableKey)
-	loggerLog.Printf("GetLocation \"%s\"", location)
 	if location == "" {
 		return fmt.Errorf(ERROR_REQUIRED_ENV, engine.StarterEnvVariableKey)
 	}

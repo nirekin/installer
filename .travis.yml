@@ -2,7 +2,6 @@ language: go
 go: "1.10"
 
 env:
-  - TEST_DIR=go
   - DEP_VERSION="0.4.1"
   
 before_install:
@@ -13,3 +12,7 @@ before_install:
 
 install:
   - dep ensure
+
+before_script: cd go
+script:
+  - go test

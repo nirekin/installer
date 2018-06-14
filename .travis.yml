@@ -1,11 +1,17 @@
+sudo: required
+
 language: go
 go: "1.10"
+
+services:
+  - docker
 
 env:
   - DEP_VERSION="0.4.1"
   
 before_install:
   # Download the binary to bin folder in $GOPATH
+  - docker build -t nirekin/installer
   - curl -L -s https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-linux-amd64 -o $GOPATH/bin/dep
   # Make the binary executable
   - chmod +x $GOPATH/bin/dep
@@ -16,3 +22,12 @@ install:
 
 script:
   - go test -v $( go list ./...)
+  
+before_deploy:  
+  - cd ..
+  
+deploy:
+  provider: script
+  script: bash docker_push
+  on:
+    branch: master  

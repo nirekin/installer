@@ -23,8 +23,8 @@
 [[projects]]
   name = "github.com/imdario/mergo"
   packages = ["."]
-  revision = "9d5f1277e9a8ed20c3684bda8fde67c05628518c"
-  version = "v0.3.4"
+  revision = "9316a62528ac99aaecb4e47eadd6dc8aa6533d58"
+  version = "v0.3.5"
 
 [[projects]]
   branch = "master"
@@ -42,13 +42,13 @@
   branch = "master"
   name = "github.com/lagoon-platform/engine"
   packages = ["."]
-  revision = "c7426a55717fa53912bc9ded8c111a5bf3ee7630"
+  revision = "d0e46772219e6782397a8c876437f1c88e02a3f7"
 
 [[projects]]
   branch = "master"
   name = "github.com/lagoon-platform/model"
   packages = ["."]
-  revision = "a79b49dea39eb6cefbda8a173a802068c258955f"
+  revision = "72bcc6bca9a7556b616b21459852eddae028befd"
 
 [[projects]]
   branch = "master"
@@ -88,8 +88,8 @@
 [[projects]]
   name = "github.com/stretchr/testify"
   packages = ["assert"]
-  revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
-  version = "v1.2.1"
+  revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
+  version = "v1.2.2"
 
 [[projects]]
   branch = "master"
@@ -106,6 +106,7 @@
     "ed25519",
     "ed25519/internal/edwards25519",
     "internal/chacha20",
+    "internal/subtle",
     "openpgp",
     "openpgp/armor",
     "openpgp/elgamal",
@@ -117,19 +118,19 @@
     "ssh/agent",
     "ssh/knownhosts"
   ]
-  revision = "b47b1587369238182299fe4dad77d05b8b461e06"
+  revision = "37a17fe027db43f76fd88b056ddf588563fc8722"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context"]
-  revision = "1e491301e022f8f977054da4c2d852decd59571f"
+  revision = "db08ff08e8622530d9ed3a0e8ac279f6d4c02196"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["windows"]
-  revision = "9527bec2660bd847c050fda93a0f0c6dee0800bb"
+  revision = "56ede360ec1c541828fb88741b3f1049406d28f5"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -218,6 +219,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d1f7690ed84c1211c87d0f1ecdc80b5c3cb825d631fa252578408d4baacd907c"
+  inputs-digest = "edb5bf2a03e8e662f24a77eeecf5420d2cb9de21ed9844395b5b586a23a2d47b"
   solver-name = "gps-cdcl"
   solver-version = 1

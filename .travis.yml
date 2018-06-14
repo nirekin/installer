@@ -10,7 +10,7 @@ before_install:
   # Make the binary executable
   - chmod +x $GOPATH/bin/dep
 
-before_script: cd go
+before_install: cd go
 install:
   - dep ensure
 

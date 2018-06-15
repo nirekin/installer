@@ -136,7 +136,7 @@ func fcreate() error {
 		} else {
 			uid := engine.GetUId()
 			loggerLog.Printf(LOG_CREATING_UID_FOR_CLIENT, uid, client, n.Name)
-			d = path.Join(providerFolders[p].Input.Path(), uid)
+			d = path.Join(providerFolders[p].Input.Path(), n.Name)
 
 			din := path.Join(d, "input")
 
@@ -181,7 +181,7 @@ func fcreate() error {
 		// TODO WAIT FOR THE END OF THE NEW COMPONENT SPECIFICATIONS
 		// AND ADAPT THE PLAYBOOK NAME AND TAKE IN ACCOUNT THE HOOKS
 		// TODO USE THE REAL COMPONENT LOCATION COMMING FROM THE COMPONENTS MANAGER
-		engine.LaunchPlayBook("/opt/lagoon/ansible/aws-provider", "provisioning-stack.yml", "config_dir="+d, *loggerLog)
+		//engine.LaunchPlayBook("/opt/lagoon/ansible/aws-provider", "provisioning-stack.yml", "config_dir="+d, *loggerLog)
 	}
 
 	by, e := createSession.Content()

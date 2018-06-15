@@ -25,9 +25,11 @@ script:
   
 before_deploy:  
   - cd ..
+  - docker build nirekin/installer .     	
+  - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
   
 deploy:
   provider: script
-  script: bash docker_push
+  script: docker push nirekin/installer
   on:
-    branch: master  
+    branch: master

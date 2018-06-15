@@ -24,6 +24,7 @@ script:
   
 before_deploy:  
   - cd ..
+  - docker run --rm -v "$PWD/go":/go/src/installer -w /go/src/installer iron/go:dev go build -o installer
   - docker build -t nirekin/installer .     	
   - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
   

@@ -41,14 +41,17 @@
 [[projects]]
   branch = "master"
   name = "github.com/lagoon-platform/engine"
-  packages = ["."]
-  revision = "d0e46772219e6782397a8c876437f1c88e02a3f7"
+  packages = [
+    ".",
+    "ssh"
+  ]
+  revision = "2c9c2fe706bad0d8b24830ccdd1760a25bde9ccf"
 
 [[projects]]
   branch = "master"
   name = "github.com/lagoon-platform/model"
   packages = ["."]
-  revision = "72bcc6bca9a7556b616b21459852eddae028befd"
+  revision = "c2081c6fa673826cfd2bdb313226eff16cee5561"
 
 [[projects]]
   branch = "master"
@@ -118,7 +121,7 @@
     "ssh/agent",
     "ssh/knownhosts"
   ]
-  revision = "37a17fe027db43f76fd88b056ddf588563fc8722"
+  revision = "7f39a6fea4fe9364fb61e1def6a268a51b4f3a06"
 
 [[projects]]
   branch = "master"
@@ -130,7 +133,7 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["windows"]
-  revision = "56ede360ec1c541828fb88741b3f1049406d28f5"
+  revision = "ad87a3a340fa7f3bed189293fbfa7a9b7e021ae1"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -219,6 +222,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "edb5bf2a03e8e662f24a77eeecf5420d2cb9de21ed9844395b5b586a23a2d47b"
+  inputs-digest = "1a303e165d5cdcda7a12d0b1a246121e83c54443fe69d0b6c4dd35c719522e70"
   solver-name = "gps-cdcl"
   solver-version = 1

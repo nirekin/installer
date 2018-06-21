@@ -1,4 +1,4 @@
-package main
+package installer
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"github.com/lagoon-platform/engine"
 )
 
-func flocation(c *installerContext) (error, cleanup) {
+func flocation(c *InstallerContext) (error, cleanup) {
 	c.location = os.Getenv(engine.StarterEnvVariableKey)
 	if c.location == "" {
 		return fmt.Errorf(ERROR_REQUIRED_ENV, engine.StarterEnvVariableKey), nil

@@ -1,8 +1,7 @@
-package main
+package installer
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path"
 	"time"
@@ -16,22 +15,7 @@ type NodeExtraVars struct {
 	Instances int
 }
 
-// main starts the process of the installer.
-//
-// This method is supposed to be launched via an entrypoint through the Dockerfile
-// used to generate the image.
-//
-func main() {
-	c := installerContext{}
-	c.log = log.New(os.Stdout, engine.InstallerLogPrefix, log.Ldate|log.Ltime|log.Lmicroseconds)
-	c.log.Println(LOG_STARTING)
-	e := run(&c)
-	if e != nil {
-		c.log.Fatal(e)
-	}
-}
-
-func run(c *installerContext) (e error) {
+func Run(c *InstallerContext) (e error) {
 	// Check if the received action is supporter by the engine
 	c.log.Println("Running the installer")
 	a := os.Getenv(engine.ActionEnvVariableKey)
@@ -52,7 +36,7 @@ func run(c *installerContext) (e error) {
 }
 
 // runCreate launches the environment creation
-func runCreate(c *installerContext) (e error) {
+func runCreate(c *InstallerContext) (e error) {
 	// Stack of functions required to create an environment
 	calls := []step{
 		fproxy,
@@ -69,7 +53,7 @@ func runCreate(c *installerContext) (e error) {
 }
 
 // runCheck launches the environment check
-func runCheck(c *installerContext) (e error) {
+func runCheck(c *InstallerContext) (e error) {
 	// Stack of functions required to check an environment
 	calls := []step{
 		fproxy,
@@ -82,7 +66,7 @@ func runCheck(c *installerContext) (e error) {
 	return
 }
 
-func fcreate(c *installerContext) (error, cleanup) {
+func fcreate(c *InstallerContext) (error, cleanup) {
 	// Check if a session already exists
 	var createSession engine.CreationSession
 	var d string
@@ -189,7 +173,7 @@ func fcreate(c *installerContext) (error, cleanup) {
 	return nil, nil
 }
 
-func flogLagoon(c *installerContext) (error, cleanup) {
+func flogLagoon(c *InstallerContext) (error, cleanup) {
 	ve := c.lagoonError
 	if ve != nil {
 		vErrs, ok := ve.(model.ValidationErrors)
@@ -216,13 +200,13 @@ func flogLagoon(c *installerContext) (error, cleanup) {
 	return nil, noCleanUpRequired
 }
 
-func flagoon(c *installerContext) (error, cleanup) {
+func flagoon(c *InstallerContext) (error, cleanup) {
 	// TODO CHECK THE REAL VERSION HERE ONCE IT WILL BE COMMITED BY THE COMPONENT
 	c.lagoon, c.lagoonError = engine.Create(c.log, "/var/lib/lagoon", c.location, "")
 	return nil, noCleanUpRequired
 }
 
-func ffailOnLagoonError(c *installerContext) (error, cleanup) {
+func ffailOnLagoonError(c *InstallerContext) (error, cleanup) {
 	if c.lagoonError != nil {
 		c.log.Println(c.lagoonError)
 		return fmt.Errorf(ERROR_PARSING_DESCRIPTOR, c.lagoonError.Error()), noCleanUpRequired

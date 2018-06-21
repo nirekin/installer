@@ -1,4 +1,4 @@
-package main
+package installer
 
 import (
 	"log"
@@ -10,7 +10,7 @@ import (
 )
 
 func TestNoProxy(t *testing.T) {
-	c := &installerContext{}
+	c := &InstallerContext{}
 	c.log = log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
 	os.Setenv(engine.ActionEnvVariableKey, engine.ActionCreate.String())
 	os.Unsetenv(engine.HttpProxyEnvVariableKey)
@@ -25,7 +25,7 @@ func TestNoProxy(t *testing.T) {
 }
 
 func TestProxy(t *testing.T) {
-	c := &installerContext{}
+	c := &InstallerContext{}
 	c.log = log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
 	os.Setenv(engine.ActionEnvVariableKey, engine.ActionCreate.String())
 	os.Setenv(engine.HttpProxyEnvVariableKey, "http_value")

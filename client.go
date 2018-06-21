@@ -1,4 +1,4 @@
-package main
+package installer
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"github.com/lagoon-platform/engine"
 )
 
-func fclient(c *installerContext) (error, cleanup) {
+func fclient(c *InstallerContext) (error, cleanup) {
 	c.client = os.Getenv(engine.ClientEnvVariableKey)
 	if c.client == "" {
 		return fmt.Errorf(ERROR_REQUIRED_ENV, engine.ClientEnvVariableKey), noCleanUpRequired

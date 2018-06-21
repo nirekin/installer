@@ -1,4 +1,4 @@
-package main
+package installer
 
 import (
 	"log"
@@ -6,7 +6,7 @@ import (
 	"github.com/lagoon-platform/engine"
 )
 
-type installerContext struct {
+type InstallerContext struct {
 	location      string
 	client        string
 	sshPublicKey  string
@@ -18,4 +18,16 @@ type installerContext struct {
 	lagoon        engine.Lagoon
 	lagoonError   error
 	ef            engine.ExchangeFolder
+}
+
+func (c *InstallerContext) SetLog(l *log.Logger) {
+	c.log = l
+}
+
+func (c *InstallerContext) LogPrintln(v ...interface{}) {
+	c.log.Println(v)
+}
+
+func (c *InstallerContext) LogFatal(v ...interface{}) {
+	c.log.Fatal(v)
 }

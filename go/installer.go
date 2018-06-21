@@ -51,9 +51,9 @@ func run(c *installerContext) (e error) {
 	return
 }
 
-// runCreate launches the envinronemt creation
+// runCreate launches the environment creation
 func runCreate(c *installerContext) (e error) {
-	// Stack of functions required to create an envinronemnt
+	// Stack of functions required to create an environment
 	calls := []step{
 		fproxy,
 		fclient,
@@ -68,9 +68,9 @@ func runCreate(c *installerContext) (e error) {
 	return
 }
 
-// runCheck launches the envinronemt check
+// runCheck launches the environment check
 func runCheck(c *installerContext) (e error) {
-	// Stack of functions required to check an envinronemnt
+	// Stack of functions required to check an environment
 	calls := []step{
 		fproxy,
 		fexchangeFoldef,

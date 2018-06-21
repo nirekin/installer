@@ -11,20 +11,6 @@ import (
 	"github.com/lagoon-platform/model"
 )
 
-var (
-	location      string
-	client        string
-	sshPublicKey  string
-	sshPrivateKey string
-	httpProxy     string
-	httpsProxy    string
-	noProxy       string
-	loggerLog     *log.Logger
-	lagoon        engine.Lagoon
-	lagoonError   error
-	ef            engine.ExchangeFolder
-)
-
 type NodeExtraVars struct {
 	Params    map[string]string
 	Instances int
@@ -36,25 +22,26 @@ type NodeExtraVars struct {
 // used to generate the image.
 //
 func main() {
-	loggerLog = log.New(os.Stdout, engine.InstallerLogPrefix, log.Ldate|log.Ltime|log.Lmicroseconds)
-	loggerLog.Println(LOG_STARTING)
-	e := run()
+	c := installerContext{}
+	c.log = log.New(os.Stdout, engine.InstallerLogPrefix, log.Ldate|log.Ltime|log.Lmicroseconds)
+	c.log.Println(LOG_STARTING)
+	e := run(&c)
 	if e != nil {
-		loggerLog.Fatal(e)
+		c.log.Fatal(e)
 	}
 }
 
-func run() (e error) {
+func run(c *installerContext) (e error) {
 	// Check if the received action is supporter by the engine
-	loggerLog.Println("Running the installer")
+	c.log.Println("Running the installer")
 	a := os.Getenv(engine.ActionEnvVariableKey)
 	switch a {
 	case engine.ActionCreate.String():
-		loggerLog.Println("Action Create asked")
-		e = runCreate()
+		c.log.Println("Action Create asked")
+		e = runCreate(c)
 	case engine.ActionCheck.String():
-		loggerLog.Println("Action Check asked")
-		e = runCheck()
+		c.log.Println("Action Check asked")
+		e = runCheck(c)
 	default:
 		if a == "" {
 			a = "No action specified"
@@ -65,7 +52,7 @@ func run() (e error) {
 }
 
 // runCreate launches the envinronemt creation
-func runCreate() (e error) {
+func runCreate(c *installerContext) (e error) {
 	// Stack of functions required to create an envinronemnt
 	calls := []step{
 		fproxy,
@@ -77,12 +64,12 @@ func runCreate() (e error) {
 		ffailOnLagoonError,
 		fcreate,
 	}
-	e = launch(calls)
+	e = launch(calls, c)
 	return
 }
 
 // runCheck launches the envinronemt check
-func runCheck() (e error) {
+func runCheck(c *installerContext) (e error) {
 	// Stack of functions required to check an envinronemnt
 	calls := []step{
 		fproxy,
@@ -91,37 +78,37 @@ func runCheck() (e error) {
 		flagoon,
 		flogLagoon,
 	}
-	e = launch(calls)
+	e = launch(calls, c)
 	return
 }
 
-func fcreate() (error, cleanup) {
+func fcreate(c *installerContext) (error, cleanup) {
 	// Check if a session already exists
 	var createSession engine.CreationSession
 	var d string
-	providerFolders, err := enrichExchangeFolder(ef, lagoon.Environment())
+	providerFolders, err := enrichExchangeFolder(c.ef, c.lagoon.Environment(), c)
 
 	if err != nil {
 		return err, nil
 	}
 
-	b, s := engine.HasCreationSession(ef)
+	b, s := engine.HasCreationSession(c.ef)
 	if !b {
-		createSession = engine.CreationSession{Client: client, Uids: make(map[string]string)}
+		createSession = engine.CreationSession{Client: c.client, Uids: make(map[string]string)}
 	} else {
 		createSession = s.CreationSession
 	}
 
-	for _, n := range lagoon.Environment().NodeSets {
-		loggerLog.Printf(LOG_PROCESSING_NODE, n.Name)
+	for _, n := range c.lagoon.Environment().NodeSets {
+		c.log.Printf(LOG_PROCESSING_NODE, n.Name)
 		p := n.Provider.ProviderName()
 
 		if val, ok := createSession.Uids[n.Name]; ok {
-			loggerLog.Printf(LOG_REUSING_UID_FOR_CLIENT, val, client, n.Name)
+			c.log.Printf(LOG_REUSING_UID_FOR_CLIENT, val, c.client, n.Name)
 			d = path.Join(providerFolders[p].Input.Path(), val)
 		} else {
 			uid := engine.GetUId()
-			loggerLog.Printf(LOG_CREATING_UID_FOR_CLIENT, uid, client, n.Name)
+			c.log.Printf(LOG_CREATING_UID_FOR_CLIENT, uid, c.client, n.Name)
 			d = path.Join(providerFolders[p].Input.Path(), n.Name)
 
 			din := path.Join(d, "input")
@@ -129,21 +116,21 @@ func fcreate() (error, cleanup) {
 			//TODO Find a sexy way to pass the output folder to the container
 			// avoiding using the config file
 			// providerFolders[p].Output.Path()
-			b, e := n.Config(client, uid, p, sshPublicKey, sshPrivateKey)
+			b, e := n.Config(c.client, uid, p, c.sshPublicKey, c.sshPrivateKey)
 			if e != nil {
 				return e, nil
 			}
 			createSession.Add(n.Name, uid)
-			engine.SaveFile(loggerLog, din, engine.NodeConfigFileName, b)
+			engine.SaveFile(c.log, din, engine.NodeConfigFileName, b)
 
 			b, e = n.OrchestratorVars()
 			if e != nil {
 				return e, nil
 			}
-			engine.SaveFile(loggerLog, din, engine.OrchestratorFileName, b)
+			engine.SaveFile(c.log, din, engine.OrchestratorFileName, b)
 
-			if httpProxy != "" {
-				engine.SaveProxy(loggerLog, din, httpProxy, httpsProxy, noProxy)
+			if c.httpProxy != "" {
+				engine.SaveProxy(c.log, din, c.httpProxy, c.httpsProxy, c.noProxy)
 			}
 
 			// TODO generate
@@ -158,14 +145,14 @@ func fcreate() (error, cleanup) {
 		os.Setenv("ANSIBLE_INVENTORY", "/opt/lagoon/ansible/aws-provider/scripts/ec2.py")
 		os.Setenv("EC2_INI_PATH", "/opt/lagoon/ansible/aws-provider/scripts/ec2.ini")
 		os.Setenv("PROVIDER_PATH", "/opt/lagoon/ansible/aws-provider")
-		os.Setenv("http_proxy", httpProxy)
-		os.Setenv("https_proxy", httpsProxy)
+		os.Setenv("http_proxy", c.httpProxy)
+		os.Setenv("https_proxy", c.httpsProxy)
 
 		// TODO ENV VARIABLES SHOULD BE PASSED TO THE PLAYBOOK LAUNCHER
 
 		i := 1
 		for i <= 20 {
-			loggerLog.Printf("log content for testing %d", i)
+			c.log.Printf("log content for testing %d", i)
 			i = i + 1
 			time.Sleep(time.Millisecond * 1000)
 		}
@@ -178,9 +165,9 @@ func fcreate() (error, cleanup) {
 				return e
 			}
 			paths := lagoon.ComponentManager().ComponentsPaths()
-			loggerLog.Printf("Component paths %d", paths)
+			c.log.Printf("Component paths %d", paths)
 			repName := lagoon.ComponentManager().ComponentPath(n.Provider.ComponentId())
-			loggerLog.Printf("Launching playbook located into %s", repName)
+			c.log.Printf("Launching playbook located into %s", repName)
 			engine.LaunchPlayBook(repName, "provisioning-stack.yml", "config_dir="+d, *loggerLog)
 		*/
 
@@ -195,28 +182,28 @@ func fcreate() (error, cleanup) {
 	if e != nil {
 		return e, nil
 	}
-	engine.SaveFile(loggerLog, engine.InstallerVolume, engine.CreationSessionFileName, by)
+	engine.SaveFile(c.log, engine.InstallerVolume, engine.CreationSessionFileName, by)
 
 	// Dummy log line just for testing purposes
-	//loggerLog.Println("Last Super log from installer ")
+	//c.log.Println("Last Super log from installer ")
 	return nil, nil
 }
 
-func flogLagoon() (error, cleanup) {
-	ve := lagoonError
+func flogLagoon(c *installerContext) (error, cleanup) {
+	ve := c.lagoonError
 	if ve != nil {
 		vErrs, ok := ve.(model.ValidationErrors)
 		// if the error is not a "validation error" then we return it
 		if !ok {
 			return fmt.Errorf(ERROR_PARSING_ENVIRONMENT, ve.Error()), nil
 		} else {
-			loggerLog.Printf(ve.Error())
+			c.log.Printf(ve.Error())
 			b, e := vErrs.JSonContent()
 			if e != nil {
 				return fmt.Errorf(ERROR_GENERIC, e), nil
 			}
 			// print both errors and warnings into the report file
-			engine.SaveFile(loggerLog, ef.Output.Path(), ERROR_CREATING_REPORT_FILE, b)
+			engine.SaveFile(c.log, c.ef.Output.Path(), ERROR_CREATING_REPORT_FILE, b)
 			if vErrs.HasErrors() {
 				// in case of validation error we stop
 
@@ -224,21 +211,21 @@ func flogLagoon() (error, cleanup) {
 			}
 		}
 	} else {
-		loggerLog.Printf(LOG_VALIDATION_SUCCESSFUL)
+		c.log.Printf(LOG_VALIDATION_SUCCESSFUL)
 	}
 	return nil, noCleanUpRequired
 }
 
-func flagoon() (error, cleanup) {
+func flagoon(c *installerContext) (error, cleanup) {
 	// TODO CHECK THE REAL VERSION HERE ONCE IT WILL BE COMMITED BY THE COMPONENT
-	lagoon, lagoonError = engine.Create(loggerLog, "/var/lib/lagoon", location, "")
+	c.lagoon, c.lagoonError = engine.Create(c.log, "/var/lib/lagoon", c.location, "")
 	return nil, noCleanUpRequired
 }
 
-func ffailOnLagoonError() (error, cleanup) {
-	if lagoonError != nil {
-		loggerLog.Println(lagoonError)
-		return fmt.Errorf(ERROR_PARSING_DESCRIPTOR, lagoonError.Error()), noCleanUpRequired
+func ffailOnLagoonError(c *installerContext) (error, cleanup) {
+	if c.lagoonError != nil {
+		c.log.Println(c.lagoonError)
+		return fmt.Errorf(ERROR_PARSING_DESCRIPTOR, c.lagoonError.Error()), noCleanUpRequired
 	}
 
 	return nil, noCleanUpRequired

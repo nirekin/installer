@@ -7,9 +7,9 @@ import (
 	"github.com/lagoon-platform/model"
 )
 
-func fexchangeFoldef() (error, cleanup) {
+func fexchangeFoldef(c *installerContext) (error, cleanup) {
 	var err error
-	ef, err = engine.CreateExchangeFolder(engine.InstallerVolume, "")
+	c.ef, err = engine.CreateExchangeFolder(engine.InstallerVolume, "")
 	if err != nil {
 		return fmt.Errorf(ERROR_CREATING_EXCHANGE_FOLDER, engine.ClientEnvVariableKey), nil
 	}
@@ -19,9 +19,9 @@ func fexchangeFoldef() (error, cleanup) {
 //enrichExchangeFolder adds a sub level of ExchangeFolder to the received one.
 //This will add a "sub ExchangeFolder" for each provider willing to be in charge
 // of a nodeset creation.
-func enrichExchangeFolder(f engine.ExchangeFolder, e model.Environment) (r map[string]engine.ExchangeFolder, err error) {
+func enrichExchangeFolder(f engine.ExchangeFolder, e model.Environment, c *installerContext) (r map[string]engine.ExchangeFolder, err error) {
 	r = make(map[string]engine.ExchangeFolder)
-	for _, n := range lagoon.Environment().NodeSets {
+	for _, n := range c.lagoon.Environment().NodeSets {
 		p := n.Provider.ProviderName()
 		if !f.Input.Contains(p) {
 			var pEf engine.ExchangeFolder

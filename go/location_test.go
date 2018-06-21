@@ -10,19 +10,21 @@ import (
 )
 
 func TestNoLocation(t *testing.T) {
-	loggerLog = log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
+	c := &installerContext{}
+	c.log = log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
 	os.Setenv(engine.ActionEnvVariableKey, engine.ActionCreate.String())
 	os.Unsetenv(engine.StarterEnvVariableKey)
-	e, _ := flocation()
+	e, _ := flocation(c)
 	assert.NotNil(t, e)
 	assert.Equal(t, e.Error(), "the environment variable \"LAGOON_ENV_DESCR\" should be defined")
 }
 
 func TestLocation(t *testing.T) {
-	loggerLog = log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
+	c := &installerContext{}
+	c.log = log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
 	os.Setenv(engine.ActionEnvVariableKey, engine.ActionCreate.String())
 	os.Setenv(engine.StarterEnvVariableKey, "test_location")
-	e, _ := flocation()
+	e, _ := flocation(c)
 	assert.Nil(t, e)
-	assert.Equal(t, location, "test_location")
+	assert.Equal(t, c.location, "test_location")
 }

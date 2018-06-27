@@ -31,10 +31,10 @@ func fSHKeys(c *InstallerContext) (error, cleanup) {
 		if e != nil {
 			return fmt.Errorf(ERROR_GENERATING_SSH_KEYS, e.Error()), nil
 		}
-		engine.SaveFile(c.log, c.ef.Input.Path(), engine.SSHPuplicKeyFileName, publicKey)
-		engine.SaveFile(c.log, c.ef.Input.Path(), engine.SSHPrivateKeyFileName, privateKey)
-		c.sshPublicKey = filepath.Join(c.ef.Input.Path(), "generated_", engine.SSHPuplicKeyFileName)
-		c.sshPrivateKey = filepath.Join(c.ef.Input.Path(), "generated_", engine.SSHPrivateKeyFileName)
+		engine.SaveFile(c.log, *c.ef.Input, "generated_"+engine.SSHPuplicKeyFileName, publicKey)
+		engine.SaveFile(c.log, *c.ef.Input, "generated_"+engine.SSHPrivateKeyFileName, privateKey)
+		c.sshPublicKey = filepath.Join(c.ef.Input.Path(), "generated_"+engine.SSHPuplicKeyFileName)
+		c.sshPrivateKey = filepath.Join(c.ef.Input.Path(), "generated_"+engine.SSHPrivateKeyFileName)
 	}
 
 	if c.log != nil {

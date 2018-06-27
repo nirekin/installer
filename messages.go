@@ -27,4 +27,8 @@ const (
 
 	LOG_VALIDATION_LOG_WRITTEN string = "The validation logs have been written into %s\n"
 	LOG_VALIDATION_SUCCESSFUL  string = "The envinronment descriptor validation is successful!"
+
+	LOG_PLATFORM_REPOSITORY   string = "Platform repository %s"
+	LOG_PLATFORM_VERSION      string = "Platform version %s"
+	LOG_PLATFORM_COMPONENT_ID string = "Platform component ID %s"
 )

@@ -6,6 +6,11 @@ import (
 	"github.com/lagoon-platform/engine"
 )
 
+type buffer struct {
+	envvars   map[string]string
+	extravars map[string]string
+}
+
 type InstallerContext struct {
 	location      string
 	client        string
@@ -17,7 +22,8 @@ type InstallerContext struct {
 	log           *log.Logger
 	lagoon        engine.Lagoon
 	lagoonError   error
-	ef            engine.ExchangeFolder
+	ef            *engine.ExchangeFolder
+	buffer        buffer
 }
 
 func (c *InstallerContext) SetLog(l *log.Logger) {

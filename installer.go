@@ -3,8 +3,8 @@ package installer
 import (
 	"fmt"
 	"os"
-	"path"
-	"time"
+
+	"gopkg.in/yaml.v2"
 
 	"github.com/lagoon-platform/engine"
 	"github.com/lagoon-platform/model"
@@ -46,7 +46,14 @@ func runCreate(c *InstallerContext) (e error) {
 		flocation,
 		flagoon,
 		ffailOnLagoonError,
+		fdownloadcore,
+		fenrichExchangeFolder,
+		fsetup,
+		fconsumesetup,
 		fcreate,
+		fconsumecreate,
+		fsetuporchestrator,
+		forchestrator,
 	}
 	e = launch(calls, c)
 	return
@@ -66,17 +73,120 @@ func runCheck(c *InstallerContext) (e error) {
 	return
 }
 
+func fdownloadcore(c *InstallerContext) (error, cleanup) {
+	c.log.Printf(LOG_PLATFORM_VERSION, c.lagoon.Environment().LagoonPlatform.Version)
+	c.log.Printf(LOG_PLATFORM_REPOSITORY, c.lagoon.Environment().LagoonPlatform.Repository)
+	c.log.Printf(LOG_PLATFORM_COMPONENT_ID, c.lagoon.Environment().LagoonPlatform.Component.Id)
+	c.lagoon.ComponentManager().RegisterComponent(c.lagoon.Environment().LagoonPlatform.Component)
+	return nil, nil
+}
+
+func ProviderConfig(p string, pubK string, privK string) (b []byte, e error) {
+	mcon := model.MachineConfig{}
+
+	pcon := model.ConnectionConfig{
+		Provider:          p,
+		MachinePublicKey:  pubK,
+		MachinePrivateKey: privK,
+	}
+	mcon.ConnectionConfig = pcon
+	b, e = yaml.Marshal(&mcon)
+	return
+}
+
+func fsetup(c *InstallerContext) (error, cleanup) {
+	for _, p := range c.lagoon.Environment().Providers {
+		c.log.Printf("Setup for provider %s", p.Name)
+		dinFolder := c.ef.Input.Children[p.Name].Input
+		doutFolder := c.ef.Input.Children[p.Name].Output
+
+		b, e := ProviderConfig(p.Name, c.sshPublicKey, c.sshPrivateKey)
+		if e != nil {
+			return e, nil
+		}
+		e = dinFolder.Write(b, engine.ParamYamlFileName)
+		if e != nil {
+			return e, nil
+		}
+
+		// TODO REMOVE HARDCODED STUFF AND BASED THIS ON THE RECEIVED ENV FILE
+		os.Setenv("http_proxy", c.httpProxy)
+		os.Setenv("https_proxy", c.httpsProxy)
+
+		e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *dinFolder)
+
+		ev := engine.BuildExtraVars("", *dinFolder, *doutFolder)
+		engine.LaunchPlayBook(c.lagoon.ComponentManager().ComponentPath(p.Component.Id), "setup.yml", ev, *c.log)
+	}
+	return nil, nil
+}
+
+func fconsumesetup(c *InstallerContext) (error, cleanup) {
+	buffer := buffer{}
+	buffer.envvars = make(map[string]string)
+	buffer.extravars = make(map[string]string)
+	c.buffer = buffer
+
+	for _, p := range c.lagoon.Environment().Providers {
+		c.log.Printf("Consume setup for provider %s", p.Name)
+		doutFolder := c.ef.Input.Children[p.Name].Output
+
+		if ok, b, err := doutFolder.ContainsEnvYaml(); ok {
+			c.log.Printf("Consuming %s from setup for provider %s", engine.EnvYamlFileName, p.Name)
+			if err != nil {
+				return err, noCleanUpRequired
+			}
+			err = yaml.Unmarshal([]byte(b), c.buffer.envvars)
+			if err != nil {
+				return err, noCleanUpRequired
+			}
+
+			// TODO MOVE THIS into the init phase of the next step
+			for k, v := range c.buffer.envvars {
+				// TODO don't se  os.Setenv(k, v), better to place this at the command level
+				os.Setenv(k, v)
+				c.log.Printf("Setting env var %s=%s", k, v)
+			}
+		} else {
+			c.log.Printf("No %s located...", engine.EnvYamlFileName)
+		}
+
+		if ok, b, err := doutFolder.ContainsExtraVarsYaml(); ok {
+			c.log.Printf("Consuming %s from setup for provider %s", engine.ExtraVarYamlFileName, p.Name)
+			if err != nil {
+				return err, noCleanUpRequired
+			}
+			err = yaml.Unmarshal([]byte(b), c.buffer.extravars)
+			if err != nil {
+				return err, noCleanUpRequired
+			}
+		} else {
+			c.log.Printf("No %s located...", engine.EnvYamlFileName)
+		}
+
+		if ok, _, err := doutFolder.ContainsParamYaml(); ok {
+			c.log.Printf("Consuming %s from setup for provider %s", engine.ParamYamlFileName, p.Name)
+			if err != nil {
+				return err, noCleanUpRequired
+			}
+
+			// TODO consume this
+			// By moving it into the init phase of the next step
+		} else {
+			c.log.Printf("No %s located...", engine.ParamYamlFileName)
+		}
+	}
+	return nil, nil
+}
+
 func fcreate(c *InstallerContext) (error, cleanup) {
 	// Check if a session already exists
 	var createSession engine.CreationSession
-	var d string
-	providerFolders, err := enrichExchangeFolder(c.ef, c.lagoon.Environment(), c)
+	var proEf *engine.ExchangeFolder
+	var nodeEf *engine.ExchangeFolder
+	var e error
 
-	if err != nil {
-		return err, nil
-	}
-
-	b, s := engine.HasCreationSession(c.ef)
+	b, s := engine.HasCreationSession(*c.ef)
 	if !b {
 		createSession = engine.CreationSession{Client: c.client, Uids: make(map[string]string)}
 	} else {
@@ -85,91 +195,145 @@ func fcreate(c *InstallerContext) (error, cleanup) {
 
 	for _, n := range c.lagoon.Environment().NodeSets {
 		c.log.Printf(LOG_PROCESSING_NODE, n.Name)
-		p := n.Provider.ProviderName()
+		p := n.Provider
 
 		if val, ok := createSession.Uids[n.Name]; ok {
 			c.log.Printf(LOG_REUSING_UID_FOR_CLIENT, val, c.client, n.Name)
-			d = path.Join(providerFolders[p].Input.Path(), val)
+			// Provider exchange folder
+			proEf, e = engine.CreateExchangeFolder(c.ef.Input.Path(), p.ProviderName())
+			if e != nil {
+				return e, nil
+			}
+			// Node exchange folder
+			nodeEf, e = engine.CreateExchangeFolder(proEf.Input.Path(), val)
+			if e != nil {
+				return e, nil
+			}
 		} else {
 			uid := engine.GetUId()
 			c.log.Printf(LOG_CREATING_UID_FOR_CLIENT, uid, c.client, n.Name)
-			d = path.Join(providerFolders[p].Input.Path(), n.Name)
-
-			din := path.Join(d, "input")
-
-			//TODO Find a sexy way to pass the output folder to the container
-			// avoiding using the config file
-			// providerFolders[p].Output.Path()
-			b, e := n.Config(c.client, uid, p, c.sshPublicKey, c.sshPrivateKey)
+			// Provider exchange folder
+			proEf, e = engine.CreateExchangeFolder(c.ef.Input.Path(), p.ProviderName())
+			if e != nil {
+				return e, nil
+			}
+			// Node exchange folder
+			nodeEf, e = engine.CreateExchangeFolder(proEf.Input.Path(), n.Name)
+			if e != nil {
+				return e, nil
+			}
+			e = nodeEf.Create()
+			if e != nil {
+				return e, nil
+			}
+			b, e := n.NodeParams(c.client, uid, p.ProviderName(), c.sshPublicKey, c.sshPrivateKey)
 			if e != nil {
 				return e, nil
 			}
 			createSession.Add(n.Name, uid)
-			engine.SaveFile(c.log, din, engine.NodeConfigFileName, b)
+			engine.SaveFile(c.log, *nodeEf.Input, engine.ParamYamlFileName, b)
 
-			b, e = n.OrchestratorVars()
+			b, e = n.OrchestratorParams()
 			if e != nil {
 				return e, nil
 			}
-			engine.SaveFile(c.log, din, engine.OrchestratorFileName, b)
+			engine.SaveFile(c.log, *nodeEf.Input, engine.OrchestratorFileName, b)
 
-			if c.httpProxy != "" {
-				engine.SaveProxy(c.log, din, c.httpProxy, c.httpsProxy, c.noProxy)
+			e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *nodeEf.Input)
+			if e != nil {
+				return e, noCleanUpRequired
 			}
-
-			// TODO generate
-			// component_paths:
-			//  core: /opt/lagoon/ansible/core
-			//  aws-provider: /opt/lagoon/ansible/aws-provider
-			//  ...
-			//  into a file component_paths.yaml
 		}
 
 		// TODO REMOVE HARDCODED STUFF AND BASED THIS ON THE RECEIVED ENV FILE
-		os.Setenv("ANSIBLE_INVENTORY", "/opt/lagoon/ansible/aws-provider/scripts/ec2.py")
-		os.Setenv("EC2_INI_PATH", "/opt/lagoon/ansible/aws-provider/scripts/ec2.ini")
-		os.Setenv("PROVIDER_PATH", "/opt/lagoon/ansible/aws-provider")
 		os.Setenv("http_proxy", c.httpProxy)
 		os.Setenv("https_proxy", c.httpsProxy)
-
-		// TODO ENV VARIABLES SHOULD BE PASSED TO THE PLAYBOOK LAUNCHER
-
-		i := 1
-		for i <= 20 {
-			c.log.Printf("log content for testing %d", i)
-			i = i + 1
-			time.Sleep(time.Millisecond * 1000)
-		}
-
-		// TODO WAIT FOR THE END OF THE NEW COMPONENT SPECIFICATIONS
-		// AND ADAPT THE PLAYBOOK NAME AND TAKE IN ACCOUNT THE HOOKS
-		/*
-			e := lagoon.ComponentManager().Ensure()
-			if e != nil {
-				return e
-			}
-			paths := lagoon.ComponentManager().ComponentsPaths()
-			c.log.Printf("Component paths %d", paths)
-			repName := lagoon.ComponentManager().ComponentPath(n.Provider.ComponentId())
-			c.log.Printf("Launching playbook located into %s", repName)
-			engine.LaunchPlayBook(repName, "provisioning-stack.yml", "config_dir="+d, *loggerLog)
-		*/
-
-		//TODO I need to get the component location fetching by its repository name
-		// The trick is that currently i have just aws-provider-f9857c4ca06911bd460bb710ad23e25a5540fab6=/var/lib/lagoon/components/aws-provider-f9857c4ca06911bd460bb710ad23e25a5540fab6
-		// And i need lagoon-platform/aws-provider: 0.0.1=/var/lib/lagoon/components/aws-provider-f9857c4ca06911bd460bb710ad23e25a5540fab6
-		//engine.LaunchPlayBook("/opt/lagoon/ansible/aws-provider", "provisioning-stack.yml", "input_dir="+d, *loggerLog)
-
+		ev := engine.BuildExtraVars("", *nodeEf.Input, *proEf.Output)
+		engine.LaunchPlayBook(c.lagoon.ComponentManager().ComponentPath(p.Component().Id), "create.yml", ev, *c.log)
 	}
 
 	by, e := createSession.Content()
 	if e != nil {
 		return e, nil
 	}
-	engine.SaveFile(c.log, engine.InstallerVolume, engine.CreationSessionFileName, by)
+	engine.SaveFile(c.log, *c.ef.Location, engine.CreationSessionFileName, by)
+	return nil, nil
+}
 
-	// Dummy log line just for testing purposes
-	//c.log.Println("Last Super log from installer ")
+func fconsumecreate(c *InstallerContext) (error, cleanup) {
+	buffer := buffer{}
+	buffer.envvars = make(map[string]string)
+	buffer.extravars = make(map[string]string)
+	c.buffer = buffer
+
+	for _, p := range c.lagoon.Environment().Providers {
+		c.log.Printf("Consume create for provider %s", p.Name)
+		doutFolder := c.ef.Input.Children[p.Name].Output
+
+		if ok, b, err := doutFolder.ContainsEnvYaml(); ok {
+			c.log.Printf("Consuming %s from create for provider %s", engine.EnvYamlFileName, p.Name)
+			if err != nil {
+				return err, noCleanUpRequired
+			}
+			err = yaml.Unmarshal([]byte(b), c.buffer.envvars)
+			if err != nil {
+				return err, noCleanUpRequired
+			}
+			for k, v := range c.buffer.envvars {
+				// TODO don't se  os.Setenv(k, v), better to place this at the command level
+				os.Setenv(k, v)
+				c.log.Printf("Setting env var %s=%s", k, v)
+			}
+		} else {
+			c.log.Printf("No %s located...", engine.EnvYamlFileName)
+		}
+
+		if ok, b, err := doutFolder.ContainsExtraVarsYaml(); ok {
+			c.log.Printf("Consuming %s from create for provider %s", engine.ExtraVarYamlFileName, p.Name)
+			if err != nil {
+				return err, noCleanUpRequired
+			}
+			err = yaml.Unmarshal([]byte(b), c.buffer.extravars)
+			if err != nil {
+				return err, noCleanUpRequired
+			}
+		} else {
+			c.log.Printf("No %s located...", engine.EnvYamlFileName)
+		}
+
+		if ok, _, err := doutFolder.ContainsParamYaml(); ok {
+			c.log.Printf("Consuming %s from create for provider %s", engine.ParamYamlFileName, p.Name)
+			if err != nil {
+				return err, noCleanUpRequired
+			}
+
+			// TODO consume this
+		} else {
+			c.log.Printf("No %s located...", engine.ParamYamlFileName)
+		}
+	}
+	return nil, nil
+}
+
+func fsetuporchestrator(c *InstallerContext) (error, cleanup) {
+	for _, n := range c.lagoon.Environment().NodeSets {
+		c.log.Printf(LOG_PROCESSING_NODE, n.Name)
+		p := n.Provider
+
+		// Provider exchange folder
+		proEf, e := engine.CreateExchangeFolder(c.ef.Input.Path(), p.ProviderName())
+		if e != nil {
+			return e, nil
+		}
+		// TODO CONSUME BUFFER HERE consume the map of extra var...
+		ev := engine.BuildExtraVars("", *proEf.Input, *proEf.Output)
+		engine.LaunchPlayBook(c.lagoon.ComponentManager().ComponentPath(c.lagoon.Environment().Orchestrator.Component.Id), "setup.yml", ev, *c.log)
+	}
+	return nil, nil
+}
+
+func forchestrator(c *InstallerContext) (error, cleanup) {
+
 	return nil, nil
 }
 
@@ -187,7 +351,7 @@ func flogLagoon(c *InstallerContext) (error, cleanup) {
 				return fmt.Errorf(ERROR_GENERIC, e), nil
 			}
 			// print both errors and warnings into the report file
-			engine.SaveFile(c.log, c.ef.Output.Path(), ERROR_CREATING_REPORT_FILE, b)
+			engine.SaveFile(c.log, *c.ef.Output, ERROR_CREATING_REPORT_FILE, b)
 			if vErrs.HasErrors() {
 				// in case of validation error we stop
 

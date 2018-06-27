@@ -1,5 +1,10 @@
-cp -R ../model ./vendor/github.com/lagoon-platform/
-rm -rf ./vendor/github.com/lagoon-platform/model/vendor
+# Refresh "model"
+rm -rf ./vendor/github.com/lagoon-platform/model/*.go
+cp ../model/*.go  ./vendor/github.com/lagoon-platform/model/
 
-cp -R ../engine ./vendor/github.com/lagoon-platform/
-rm -rf ./vendor/github.com/lagoon-platform/engine/vendor
+
+# Refresh "engine"
+rm -rf ./vendor/github.com/lagoon-platform/engine/*.go
+cp ../engine/*.go  ./vendor/github.com/lagoon-platform/engine/
+rm -rf ./vendor/github.com/lagoon-platform/engine/ssh/*.go
+cp ../engine/ssh/*.go  ./vendor/github.com/lagoon-platform/engine/ssh

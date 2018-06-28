@@ -78,6 +78,7 @@ func fdownloadcore(c *InstallerContext) (error, cleanup) {
 	c.log.Printf(LOG_PLATFORM_REPOSITORY, c.lagoon.Environment().LagoonPlatform.Repository)
 	c.log.Printf(LOG_PLATFORM_COMPONENT_ID, c.lagoon.Environment().LagoonPlatform.Component.Id)
 	c.lagoon.ComponentManager().RegisterComponent(c.lagoon.Environment().LagoonPlatform.Component)
+	c.lagoon.ComponentManager().RegisterComponent(c.lagoon.Environment().Orchestrator.Component)
 	return nil, nil
 }
 
@@ -95,6 +96,7 @@ func ProviderConfig(p string, pubK string, privK string) (b []byte, e error) {
 }
 
 func fsetup(c *InstallerContext) (error, cleanup) {
+
 	for _, p := range c.lagoon.Environment().Providers {
 		c.log.Printf("Setup for provider %s", p.Name)
 		dinFolder := c.ef.Input.Children[p.Name].Input
@@ -116,12 +118,24 @@ func fsetup(c *InstallerContext) (error, cleanup) {
 		e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *dinFolder)
 
 		ev := engine.BuildExtraVars("", *dinFolder, *doutFolder)
-		engine.LaunchPlayBook(c.lagoon.ComponentManager().ComponentPath(p.Component.Id), "setup.yml", ev, *c.log)
+		path := c.lagoon.ComponentManager().ComponentPath(p.Component.Id)
+		module := engine.JoinPaths(path, "modules")
+		if _, err := os.Stat(engine.JoinPaths(path, "modules")); err != nil {
+			if os.IsNotExist(err) {
+				c.log.Printf("No module located in %s", module)
+				module = ""
+			}
+		} else {
+			c.log.Printf("Module located in %s", module)
+		}
+		engine.LaunchPlayBook(path, "setup.yml", ev, module, *c.log)
 	}
+
 	return nil, nil
 }
 
 func fconsumesetup(c *InstallerContext) (error, cleanup) {
+
 	buffer := buffer{}
 	buffer.envvars = make(map[string]string)
 	buffer.extravars = make(map[string]string)
@@ -176,6 +190,7 @@ func fconsumesetup(c *InstallerContext) (error, cleanup) {
 			c.log.Printf("No %s located...", engine.ParamYamlFileName)
 		}
 	}
+
 	return nil, nil
 }
 
@@ -200,12 +215,10 @@ func fcreate(c *InstallerContext) (error, cleanup) {
 		if val, ok := createSession.Uids[n.Name]; ok {
 			c.log.Printf(LOG_REUSING_UID_FOR_CLIENT, val, c.client, n.Name)
 			// Provider exchange folder
-			proEf, e = engine.CreateExchangeFolder(c.ef.Input.Path(), p.ProviderName())
-			if e != nil {
-				return e, nil
-			}
+			proEf = c.ef.Input.Children[p.ProviderName()]
+
 			// Node exchange folder
-			nodeEf, e = engine.CreateExchangeFolder(proEf.Input.Path(), val)
+			nodeEf, e = proEf.Input.AddChildExchangeFolder(val)
 			if e != nil {
 				return e, nil
 			}
@@ -213,12 +226,10 @@ func fcreate(c *InstallerContext) (error, cleanup) {
 			uid := engine.GetUId()
 			c.log.Printf(LOG_CREATING_UID_FOR_CLIENT, uid, c.client, n.Name)
 			// Provider exchange folder
-			proEf, e = engine.CreateExchangeFolder(c.ef.Input.Path(), p.ProviderName())
-			if e != nil {
-				return e, nil
-			}
+			proEf = c.ef.Input.Children[p.ProviderName()]
+
 			// Node exchange folder
-			nodeEf, e = engine.CreateExchangeFolder(proEf.Input.Path(), n.Name)
+			nodeEf, e = proEf.Input.AddChildExchangeFolder(n.Name)
 			if e != nil {
 				return e, nil
 			}
@@ -233,12 +244,6 @@ func fcreate(c *InstallerContext) (error, cleanup) {
 			createSession.Add(n.Name, uid)
 			engine.SaveFile(c.log, *nodeEf.Input, engine.ParamYamlFileName, b)
 
-			b, e = n.OrchestratorParams()
-			if e != nil {
-				return e, nil
-			}
-			engine.SaveFile(c.log, *nodeEf.Input, engine.OrchestratorFileName, b)
-
 			e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *nodeEf.Input)
 			if e != nil {
 				return e, noCleanUpRequired
@@ -248,8 +253,20 @@ func fcreate(c *InstallerContext) (error, cleanup) {
 		// TODO REMOVE HARDCODED STUFF AND BASED THIS ON THE RECEIVED ENV FILE
 		os.Setenv("http_proxy", c.httpProxy)
 		os.Setenv("https_proxy", c.httpsProxy)
+
 		ev := engine.BuildExtraVars("", *nodeEf.Input, *proEf.Output)
-		engine.LaunchPlayBook(c.lagoon.ComponentManager().ComponentPath(p.Component().Id), "create.yml", ev, *c.log)
+
+		path := c.lagoon.ComponentManager().ComponentPath(p.Component().Id)
+		module := engine.JoinPaths(path, "modules")
+		if _, err := os.Stat(engine.JoinPaths(path, "modules")); err != nil {
+			if os.IsNotExist(err) {
+				c.log.Printf("No module located in %s", module)
+				module = ""
+			}
+		} else {
+			c.log.Printf("Module located in %s", module)
+		}
+		engine.LaunchPlayBook(path, "create.yml", ev, module, *c.log)
 	}
 
 	by, e := createSession.Content()
@@ -257,6 +274,7 @@ func fcreate(c *InstallerContext) (error, cleanup) {
 		return e, nil
 	}
 	engine.SaveFile(c.log, *c.ef.Location, engine.CreationSessionFileName, by)
+
 	return nil, nil
 }
 
@@ -298,7 +316,7 @@ func fconsumecreate(c *InstallerContext) (error, cleanup) {
 				return err, noCleanUpRequired
 			}
 		} else {
-			c.log.Printf("No %s located...", engine.EnvYamlFileName)
+			c.log.Printf("No %s located...", engine.ExtraVarYamlFileName)
 		}
 
 		if ok, _, err := doutFolder.ContainsParamYaml(); ok {
@@ -325,14 +343,62 @@ func fsetuporchestrator(c *InstallerContext) (error, cleanup) {
 		if e != nil {
 			return e, nil
 		}
-		// TODO CONSUME BUFFER HERE consume the map of extra var...
-		ev := engine.BuildExtraVars("", *proEf.Input, *proEf.Output)
-		engine.LaunchPlayBook(c.lagoon.ComponentManager().ComponentPath(c.lagoon.Environment().Orchestrator.Component.Id), "setup.yml", ev, *c.log)
+		eq := engine.BuildEquals(c.buffer.extravars)
+		c.log.Printf("Passing extra var to orchestrator setup: %s", eq)
+
+		ev := engine.BuildExtraVars(eq, *proEf.Input, *proEf.Output)
+
+		path := c.lagoon.ComponentManager().ComponentPath(c.lagoon.Environment().Orchestrator.Component.Id)
+		module := engine.JoinPaths(path, "modules")
+		if _, err := os.Stat(engine.JoinPaths(path, "modules")); err != nil {
+			if os.IsNotExist(err) {
+				c.log.Printf("No module located in %s", module)
+				module = ""
+			}
+		} else {
+			c.log.Printf("Module located in %s", module)
+		}
+		engine.LaunchPlayBook(path, "setup.yml", ev, module, *c.log)
 	}
+
 	return nil, nil
 }
 
 func forchestrator(c *InstallerContext) (error, cleanup) {
+	for _, n := range c.lagoon.Environment().NodeSets {
+		p := n.Provider
+		proEf := c.ef.Input.Children[p.ProviderName()]
+		nodeEf := proEf.Input.Children[n.Name]
+		b, e := n.OrchestratorConfig()
+		if e != nil {
+			return e, nil
+		}
+		engine.SaveFile(c.log, *nodeEf.Input, engine.ParamYamlFileName, b)
+
+		e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *nodeEf.Input)
+		if e != nil {
+			return e, noCleanUpRequired
+		}
+
+		// TODO REMOVE HARDCODED STUFF AND BASED THIS ON THE RECEIVED ENV FILE
+		os.Setenv("http_proxy", c.httpProxy)
+		os.Setenv("https_proxy", c.httpsProxy)
+
+		ev := engine.BuildExtraVars("", *nodeEf.Input, *nodeEf.Output)
+
+		path := c.lagoon.ComponentManager().ComponentPath(c.lagoon.Environment().Orchestrator.Component.Id)
+		module := engine.JoinPaths(path, "modules")
+		if _, err := os.Stat(engine.JoinPaths(path, "modules")); err != nil {
+			if os.IsNotExist(err) {
+				c.log.Printf("No module located in %s", module)
+				module = ""
+			}
+		} else {
+			c.log.Printf("Module located in %s", module)
+		}
+
+		engine.LaunchPlayBook(path, "install.yml", ev, module, *c.log)
+	}
 
 	return nil, nil
 }

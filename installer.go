@@ -232,7 +232,7 @@ func fcreate(c *InstallerContext) (error, cleanup) {
 			bp := params.BuilBaseParam(c.client, uid, p.ProviderName(), c.sshPublicKey, c.sshPrivateKey)
 			np := n.NodeParams()
 			bp.AddInt("instances", np.Instances)
-			bp.AddMap(np.Params)
+			bp.AddNamedMap("params", np.Params)
 			b, e := bp.Content()
 			if e != nil {
 				return e, nil

@@ -8,6 +8,7 @@ import (
 
 	"github.com/lagoon-platform/engine"
 	"github.com/lagoon-platform/model"
+	"github.com/lagoon-platform/model/params"
 )
 
 type NodeExtraVars struct {
@@ -53,6 +54,7 @@ func runCreate(c *InstallerContext) (e error) {
 		fcreate,
 		fconsumecreate,
 		fsetuporchestrator,
+		fconsumesetuporchestrator,
 		forchestrator,
 	}
 	e = launch(calls, c)
@@ -82,31 +84,20 @@ func fdownloadcore(c *InstallerContext) (error, cleanup) {
 	return nil, nil
 }
 
-func ProviderConfig(p string, pubK string, privK string) (b []byte, e error) {
-	mcon := model.MachineConfig{}
-
-	pcon := model.ConnectionConfig{
-		Provider:          p,
-		MachinePublicKey:  pubK,
-		MachinePrivateKey: privK,
-	}
-	mcon.ConnectionConfig = pcon
-	b, e = yaml.Marshal(&mcon)
-	return
-}
-
 func fsetup(c *InstallerContext) (error, cleanup) {
-
 	for _, p := range c.lagoon.Environment().Providers {
-		c.log.Printf("Setup for provider %s", p.Name)
-		dinFolder := c.ef.Input.Children[p.Name].Input
-		doutFolder := c.ef.Input.Children[p.Name].Output
+		c.log.Printf("Running setup for provider %s", p.Name)
+		proEf := c.ef.Input.Children[p.Name]
+		proEfIn := proEf.Input
+		proEfOut := proEf.Output
 
-		b, e := ProviderConfig(p.Name, c.sshPublicKey, c.sshPrivateKey)
+		bp := params.BuilBaseParam(c.client, "", p.Name, c.sshPublicKey, c.sshPrivateKey)
+		b, e := bp.Content()
 		if e != nil {
 			return e, nil
 		}
-		e = dinFolder.Write(b, engine.ParamYamlFileName)
+
+		e = proEfIn.Write(b, engine.ParamYamlFileName)
 		if e != nil {
 			return e, nil
 		}
@@ -115,9 +106,9 @@ func fsetup(c *InstallerContext) (error, cleanup) {
 		os.Setenv("http_proxy", c.httpProxy)
 		os.Setenv("https_proxy", c.httpsProxy)
 
-		e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *dinFolder)
+		e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *proEfIn)
 
-		ev := engine.BuildExtraVars("", *dinFolder, *doutFolder)
+		ev := engine.BuildExtraVars("", *proEfIn, *proEfOut)
 		path := c.lagoon.ComponentManager().ComponentPath(p.Component.Id)
 		module := engine.JoinPaths(path, "modules")
 		if _, err := os.Stat(engine.JoinPaths(path, "modules")); err != nil {
@@ -135,28 +126,28 @@ func fsetup(c *InstallerContext) (error, cleanup) {
 }
 
 func fconsumesetup(c *InstallerContext) (error, cleanup) {
-
-	buffer := buffer{}
-	buffer.envvars = make(map[string]string)
-	buffer.extravars = make(map[string]string)
+	buffer := Buffer{}
+	buffer.Envvars = make(map[string]string)
+	buffer.Extravars = make(map[string]string)
+	buffer.Param = make(map[string]interface{})
 	c.buffer = buffer
 
 	for _, p := range c.lagoon.Environment().Providers {
 		c.log.Printf("Consume setup for provider %s", p.Name)
-		doutFolder := c.ef.Input.Children[p.Name].Output
+		proEfOut := c.ef.Input.Children[p.Name].Output
 
-		if ok, b, err := doutFolder.ContainsEnvYaml(); ok {
+		if ok, b, err := proEfOut.ContainsEnvYaml(); ok {
 			c.log.Printf("Consuming %s from setup for provider %s", engine.EnvYamlFileName, p.Name)
 			if err != nil {
 				return err, noCleanUpRequired
 			}
-			err = yaml.Unmarshal([]byte(b), c.buffer.envvars)
+			err = yaml.Unmarshal([]byte(b), c.buffer.Envvars)
 			if err != nil {
 				return err, noCleanUpRequired
 			}
 
 			// TODO MOVE THIS into the init phase of the next step
-			for k, v := range c.buffer.envvars {
+			for k, v := range c.buffer.Envvars {
 				// TODO don't se  os.Setenv(k, v), better to place this at the command level
 				os.Setenv(k, v)
 				c.log.Printf("Setting env var %s=%s", k, v)
@@ -165,12 +156,12 @@ func fconsumesetup(c *InstallerContext) (error, cleanup) {
 			c.log.Printf("No %s located...", engine.EnvYamlFileName)
 		}
 
-		if ok, b, err := doutFolder.ContainsExtraVarsYaml(); ok {
+		if ok, b, err := proEfOut.ContainsExtraVarsYaml(); ok {
 			c.log.Printf("Consuming %s from setup for provider %s", engine.ExtraVarYamlFileName, p.Name)
 			if err != nil {
 				return err, noCleanUpRequired
 			}
-			err = yaml.Unmarshal([]byte(b), c.buffer.extravars)
+			err = yaml.Unmarshal([]byte(b), c.buffer.Extravars)
 			if err != nil {
 				return err, noCleanUpRequired
 			}
@@ -178,7 +169,7 @@ func fconsumesetup(c *InstallerContext) (error, cleanup) {
 			c.log.Printf("No %s located...", engine.EnvYamlFileName)
 		}
 
-		if ok, _, err := doutFolder.ContainsParamYaml(); ok {
+		if ok, _, err := proEfOut.ContainsParamYaml(); ok {
 			c.log.Printf("Consuming %s from setup for provider %s", engine.ParamYamlFileName, p.Name)
 			if err != nil {
 				return err, noCleanUpRequired
@@ -218,7 +209,7 @@ func fcreate(c *InstallerContext) (error, cleanup) {
 			proEf = c.ef.Input.Children[p.ProviderName()]
 
 			// Node exchange folder
-			nodeEf, e = proEf.Input.AddChildExchangeFolder(val)
+			nodeEf, e = proEf.Input.AddChildExchangeFolder(n.Name)
 			if e != nil {
 				return e, nil
 			}
@@ -237,7 +228,12 @@ func fcreate(c *InstallerContext) (error, cleanup) {
 			if e != nil {
 				return e, nil
 			}
-			b, e := n.NodeParams(c.client, uid, p.ProviderName(), c.sshPublicKey, c.sshPrivateKey)
+
+			bp := params.BuilBaseParam(c.client, uid, p.ProviderName(), c.sshPublicKey, c.sshPrivateKey)
+			np := n.NodeParams()
+			bp.AddInt("instances", np.Instances)
+			bp.AddMap(np.Params)
+			b, e := bp.Content()
 			if e != nil {
 				return e, nil
 			}
@@ -254,7 +250,7 @@ func fcreate(c *InstallerContext) (error, cleanup) {
 		os.Setenv("http_proxy", c.httpProxy)
 		os.Setenv("https_proxy", c.httpsProxy)
 
-		ev := engine.BuildExtraVars("", *nodeEf.Input, *proEf.Output)
+		ev := engine.BuildExtraVars("", *nodeEf.Input, *nodeEf.Output)
 
 		path := c.lagoon.ComponentManager().ComponentPath(p.Component().Id)
 		module := engine.JoinPaths(path, "modules")
@@ -279,25 +275,29 @@ func fcreate(c *InstallerContext) (error, cleanup) {
 }
 
 func fconsumecreate(c *InstallerContext) (error, cleanup) {
-	buffer := buffer{}
-	buffer.envvars = make(map[string]string)
-	buffer.extravars = make(map[string]string)
+	buffer := Buffer{}
+	buffer.Envvars = make(map[string]string)
+	buffer.Extravars = make(map[string]string)
+	buffer.Param = make(map[string]interface{})
 	c.buffer = buffer
 
-	for _, p := range c.lagoon.Environment().Providers {
-		c.log.Printf("Consume create for provider %s", p.Name)
-		doutFolder := c.ef.Input.Children[p.Name].Output
+	for _, n := range c.lagoon.Environment().NodeSets {
+		c.log.Printf("Consume create for node %s", n.Name)
+		p := n.Provider
+		proEf := c.ef.Input.Children[p.ProviderName()]
+		nodeEf := proEf.Input.Children[n.Name]
+		doutFolder := nodeEf.Output
 
 		if ok, b, err := doutFolder.ContainsEnvYaml(); ok {
-			c.log.Printf("Consuming %s from create for provider %s", engine.EnvYamlFileName, p.Name)
+			c.log.Printf("Consuming %s from create for node %s", engine.EnvYamlFileName, n.Name)
 			if err != nil {
 				return err, noCleanUpRequired
 			}
-			err = yaml.Unmarshal([]byte(b), c.buffer.envvars)
+			err = yaml.Unmarshal([]byte(b), c.buffer.Envvars)
 			if err != nil {
 				return err, noCleanUpRequired
 			}
-			for k, v := range c.buffer.envvars {
+			for k, v := range c.buffer.Envvars {
 				// TODO don't se  os.Setenv(k, v), better to place this at the command level
 				os.Setenv(k, v)
 				c.log.Printf("Setting env var %s=%s", k, v)
@@ -307,11 +307,11 @@ func fconsumecreate(c *InstallerContext) (error, cleanup) {
 		}
 
 		if ok, b, err := doutFolder.ContainsExtraVarsYaml(); ok {
-			c.log.Printf("Consuming %s from create for provider %s", engine.ExtraVarYamlFileName, p.Name)
+			c.log.Printf("Consuming %s from create for node %s", engine.ExtraVarYamlFileName, n.Name)
 			if err != nil {
 				return err, noCleanUpRequired
 			}
-			err = yaml.Unmarshal([]byte(b), c.buffer.extravars)
+			err = yaml.Unmarshal([]byte(b), c.buffer.Extravars)
 			if err != nil {
 				return err, noCleanUpRequired
 			}
@@ -319,13 +319,16 @@ func fconsumecreate(c *InstallerContext) (error, cleanup) {
 			c.log.Printf("No %s located...", engine.ExtraVarYamlFileName)
 		}
 
-		if ok, _, err := doutFolder.ContainsParamYaml(); ok {
-			c.log.Printf("Consuming %s from create for provider %s", engine.ParamYamlFileName, p.Name)
+		if ok, b, err := doutFolder.ContainsParamYaml(); ok {
+			c.log.Printf("Consuming %s from create for node %s", engine.ParamYamlFileName, n.Name)
 			if err != nil {
 				return err, noCleanUpRequired
 			}
-
-			// TODO consume this
+			err = yaml.Unmarshal([]byte(b), c.buffer.Param)
+			if err != nil {
+				c.log.Printf("Error consuming the param %s", err.Error())
+				return err, noCleanUpRequired
+			}
 		} else {
 			c.log.Printf("No %s located...", engine.ParamYamlFileName)
 		}
@@ -339,14 +342,23 @@ func fsetuporchestrator(c *InstallerContext) (error, cleanup) {
 		p := n.Provider
 
 		// Provider exchange folder
-		proEf, e := engine.CreateExchangeFolder(c.ef.Input.Path(), p.ProviderName())
+		proEf := c.ef.Input.Children[p.ProviderName()]
+		nodeEf := proEf.Input.Children[n.Name]
+
+		eq := engine.BuildEquals(c.buffer.Extravars)
+		c.log.Printf("Passing extra var to orchestrator setup: %s", eq)
+		ev := engine.BuildExtraVars(eq, *nodeEf.Input, *nodeEf.Output)
+
+		bp := params.BuilBaseParam(c.client, "", p.ProviderName(), c.sshPublicKey, c.sshPrivateKey)
+		op := n.OrchestratorParams()
+		bp.AddNamedMap("orchestrator", op)
+		bp.AddMap(c.buffer.Param)
+
+		b, e := bp.Content()
 		if e != nil {
 			return e, nil
 		}
-		eq := engine.BuildEquals(c.buffer.extravars)
-		c.log.Printf("Passing extra var to orchestrator setup: %s", eq)
-
-		ev := engine.BuildExtraVars(eq, *proEf.Input, *proEf.Output)
+		engine.SaveFile(c.log, *nodeEf.Input, engine.ParamYamlFileName, b)
 
 		path := c.lagoon.ComponentManager().ComponentPath(c.lagoon.Environment().Orchestrator.Component.Id)
 		module := engine.JoinPaths(path, "modules")
@@ -364,12 +376,79 @@ func fsetuporchestrator(c *InstallerContext) (error, cleanup) {
 	return nil, nil
 }
 
+func fconsumesetuporchestrator(c *InstallerContext) (error, cleanup) {
+	buffer := Buffer{}
+	buffer.Envvars = make(map[string]string)
+	buffer.Extravars = make(map[string]string)
+	buffer.Param = make(map[string]interface{})
+	c.buffer = buffer
+
+	for _, n := range c.lagoon.Environment().NodeSets {
+		c.log.Printf("Consume create for node %s", n.Name)
+		p := n.Provider
+		proEf := c.ef.Input.Children[p.ProviderName()]
+		nodeEf := proEf.Input.Children[n.Name]
+		doutFolder := nodeEf.Output
+
+		if ok, b, err := doutFolder.ContainsEnvYaml(); ok {
+			c.log.Printf("Consuming %s from create for node %s", engine.EnvYamlFileName, n.Name)
+			if err != nil {
+				return err, noCleanUpRequired
+			}
+			err = yaml.Unmarshal([]byte(b), c.buffer.Envvars)
+			if err != nil {
+				return err, noCleanUpRequired
+			}
+			for k, v := range c.buffer.Envvars {
+				// TODO don't se  os.Setenv(k, v), better to place this at the command level
+				os.Setenv(k, v)
+				c.log.Printf("Setting env var %s=%s", k, v)
+			}
+		} else {
+			c.log.Printf("No %s located...", engine.EnvYamlFileName)
+		}
+
+		if ok, b, err := doutFolder.ContainsExtraVarsYaml(); ok {
+			c.log.Printf("Consuming %s from create for node %s", engine.ExtraVarYamlFileName, n.Name)
+			if err != nil {
+				return err, noCleanUpRequired
+			}
+			err = yaml.Unmarshal([]byte(b), c.buffer.Extravars)
+			if err != nil {
+				return err, noCleanUpRequired
+			}
+		} else {
+			c.log.Printf("No %s located...", engine.ExtraVarYamlFileName)
+		}
+
+		if ok, b, err := doutFolder.ContainsParamYaml(); ok {
+			c.log.Printf("Consuming %s from create for node %s", engine.ParamYamlFileName, n.Name)
+			if err != nil {
+				return err, noCleanUpRequired
+			}
+			err = yaml.Unmarshal([]byte(b), c.buffer.Param)
+			if err != nil {
+				c.log.Printf("Error consuming the param %s", err.Error())
+				return err, noCleanUpRequired
+			}
+		} else {
+			c.log.Printf("No %s located...", engine.ParamYamlFileName)
+		}
+	}
+	return nil, nil
+}
+
 func forchestrator(c *InstallerContext) (error, cleanup) {
 	for _, n := range c.lagoon.Environment().NodeSets {
 		p := n.Provider
 		proEf := c.ef.Input.Children[p.ProviderName()]
 		nodeEf := proEf.Input.Children[n.Name]
-		b, e := n.OrchestratorConfig()
+
+		bp := params.BuilBaseParam(c.client, "", p.ProviderName(), c.sshPublicKey, c.sshPrivateKey)
+		op := n.OrchestratorParams()
+		bp.AddNamedMap("orchestrator", op)
+		bp.AddMap(c.buffer.Param)
+		b, e := bp.Content()
 		if e != nil {
 			return e, nil
 		}

@@ -45,7 +45,7 @@
     ".",
     "ssh"
   ]
-  revision = "454e8df32f217f38236f86017d0fb6bf68948774"
+  revision = "d4595082ffdade537d48610bd39033b4847a01f4"
 
 [[projects]]
   branch = "master"
@@ -54,7 +54,7 @@
     ".",
     "params"
   ]
-  revision = "f0531872c71e84b38cffcbd5d17cd2ba6c6119ea"
+  revision = "d9d33f1fa464c1009b9b6a76d6ee27caeb2cbf03"
 
 [[projects]]
   branch = "master"
@@ -98,10 +98,10 @@
   version = "v1.2.2"
 
 [[projects]]
-  branch = "master"
   name = "github.com/xanzy/ssh-agent"
   packages = ["."]
-  revision = "ba9c9e33906f58169366275e3450db66139a31a9"
+  revision = "640f0ab560aeb89d523bb6ac322b1244d5c3796c"
+  version = "v0.2.0"
 
 [[projects]]
   branch = "master"
@@ -130,13 +130,13 @@
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context"]
-  revision = "afe8f62b1d6bbd81f31868121a50b06d8188e1f9"
+  revision = "292b43bbf7cb8d35ddf40f8d5100ef3837cced3f"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["windows"]
-  revision = "a200a19cb90b19de298170992778b1fda7217bd6"
+  revision = "1b2967e3c290b7c545b3db0deeda16e9be4f98a2"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -207,8 +207,8 @@
     "utils/merkletrie/internal/frame",
     "utils/merkletrie/noder"
   ]
-  revision = "b23570073eaee3489e5e3d666f22ba5cbeb53243"
-  version = "v4.4.1"
+  revision = "3bd5e82b2512d85becae9677fa06b5a973fd4cfb"
+  version = "v4.5.0"
 
 [[projects]]
   name = "gopkg.in/warnings.v0"

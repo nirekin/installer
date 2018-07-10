@@ -233,6 +233,7 @@ func fcreate(c *InstallerContext) (error, cleanup) {
 			np := n.NodeParams()
 			bp.AddInt("instances", np.Instances)
 			bp.AddNamedMap("params", np.Params)
+			bp.AddInterface("volumes", n.Volumes)
 			b, e := bp.Content()
 			if e != nil {
 				return e, nil
@@ -337,7 +338,24 @@ func fconsumecreate(c *InstallerContext) (error, cleanup) {
 }
 
 func fsetuporchestrator(c *InstallerContext) (error, cleanup) {
+	var createSession engine.CreationSession
+	b, s := engine.HasCreationSession(*c.ef)
+	if !b {
+		createSession = engine.CreationSession{Client: c.client, Uids: make(map[string]string)}
+	} else {
+		createSession = s.CreationSession
+	}
+
 	for _, n := range c.lagoon.Environment().NodeSets {
+
+		var uid string
+
+		if val, ok := createSession.Uids[n.Name]; ok {
+			c.log.Printf(LOG_REUSING_UID_FOR_CLIENT, val, c.client, n.Name)
+			uid = val
+		} else {
+			uid = engine.GetUId()
+		}
 		c.log.Printf(LOG_PROCESSING_NODE, n.Name)
 		p := n.Provider
 
@@ -349,7 +367,7 @@ func fsetuporchestrator(c *InstallerContext) (error, cleanup) {
 		c.log.Printf("Passing extra var to orchestrator setup: %s", eq)
 		ev := engine.BuildExtraVars(eq, *nodeEf.Input, *nodeEf.Output)
 
-		bp := params.BuilBaseParam(c.client, "", p.ProviderName(), c.sshPublicKey, c.sshPrivateKey)
+		bp := params.BuilBaseParam(c.client, uid, p.ProviderName(), c.sshPublicKey, c.sshPrivateKey)
 		op := n.OrchestratorParams()
 		bp.AddNamedMap("orchestrator", op)
 		bp.AddMap(c.buffer.Param)
@@ -439,12 +457,30 @@ func fconsumesetuporchestrator(c *InstallerContext) (error, cleanup) {
 }
 
 func forchestrator(c *InstallerContext) (error, cleanup) {
+	var createSession engine.CreationSession
+	b, s := engine.HasCreationSession(*c.ef)
+	if !b {
+		createSession = engine.CreationSession{Client: c.client, Uids: make(map[string]string)}
+	} else {
+		createSession = s.CreationSession
+	}
+
 	for _, n := range c.lagoon.Environment().NodeSets {
+
+		var uid string
+
+		if val, ok := createSession.Uids[n.Name]; ok {
+			c.log.Printf(LOG_REUSING_UID_FOR_CLIENT, val, c.client, n.Name)
+			uid = val
+		} else {
+			uid = engine.GetUId()
+		}
+
 		p := n.Provider
 		proEf := c.ef.Input.Children[p.ProviderName()]
 		nodeEf := proEf.Input.Children[n.Name]
 
-		bp := params.BuilBaseParam(c.client, "", p.ProviderName(), c.sshPublicKey, c.sshPrivateKey)
+		bp := params.BuilBaseParam(c.client, uid, p.ProviderName(), c.sshPublicKey, c.sshPrivateKey)
 		op := n.OrchestratorParams()
 		bp.AddNamedMap("orchestrator", op)
 		bp.AddMap(c.buffer.Param)

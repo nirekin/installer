@@ -4,19 +4,7 @@ import (
 	"log"
 
 	"github.com/lagoon-platform/engine"
-	"gopkg.in/yaml.v2"
 )
-
-type Buffer struct {
-	Envvars   map[string]string
-	Extravars map[string]string
-	Param     map[string]interface{}
-}
-
-func (bu Buffer) Params() (b []byte, e error) {
-	b, e = yaml.Marshal(bu.Param)
-	return
-}
 
 type InstallerContext struct {
 	location      string
@@ -30,7 +18,15 @@ type InstallerContext struct {
 	lagoon        engine.Lagoon
 	lagoonError   error
 	ef            *engine.ExchangeFolder
-	buffer        Buffer
+	session       *engine.EngineSession
+	buffer        map[string]engine.Buffer
+}
+
+func CreateContext(l *log.Logger) *InstallerContext {
+	c := &InstallerContext{}
+	c.buffer = make(map[string]engine.Buffer)
+	c.log = l
+	return c
 }
 
 func (c *InstallerContext) SetLog(l *log.Logger) {
@@ -43,4 +39,12 @@ func (c *InstallerContext) LogPrintln(v ...interface{}) {
 
 func (c *InstallerContext) LogFatal(v ...interface{}) {
 	c.log.Fatal(v)
+}
+
+func (c *InstallerContext) getBuffer(p *engine.FolderPath) engine.Buffer {
+	// We check if we have a buffer corresponding to the provided folder path
+	if val, ok := c.buffer[p.Path()]; ok {
+		return val
+	}
+	return engine.CreateBuffer()
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/lagoon-platform/engine/ssh"
 )
 
-// fSHKeys checks if the SSH keys are scpecified via environmant variables.
+// fSHKeys checks if the SSH keys are specified via environment variables.
 //
 // If:
 //		YES; they will be loaded into the context
@@ -21,6 +21,7 @@ func fSHKeys(c *InstallerContext) (error, cleanup) {
 		c.sshPublicKey = filepath.Join(c.ef.Input.Path(), engine.SSHPuplicKeyFileName)
 		c.sshPrivateKey = filepath.Join(c.ef.Input.Path(), engine.SSHPrivateKeyFileName)
 		generate = false
+		c.log.Println("SSHKeys not generation required")
 	} else {
 		c.log.Println("SSHKeys generation required")
 		generate = true

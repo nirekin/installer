@@ -3,6 +3,7 @@ package installer
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/lagoon-platform/engine"
 	"github.com/lagoon-platform/model"
@@ -388,9 +389,20 @@ func flogLagoon(c *InstallerContext) (error, cleanup) {
 }
 
 func flagoon(c *InstallerContext) (error, cleanup) {
-	// TODO CHECK THE REAL VERSION HERE ONCE IT WILL BE COMMITED BY THE COMPONENT
-	c.lagoon, c.lagoonError = engine.Create(c.log, "/var/lib/lagoon", c.location, "")
+	root, flavor := repositoryFlavor(c.location)
+	c.lagoon, c.lagoonError = engine.Create(c.log, "/var/lib/lagoon", root, flavor, c.name)
 	return nil, noCleanUpRequired
+}
+
+//repositoryFlavor returns the repository flavor, branchn tag ..., based on the
+// presence of '@' into the given url
+func repositoryFlavor(url string) (string, string) {
+
+	if strings.Contains(url, "@") {
+		s := strings.Split(url, "@")
+		return s[0], s[1]
+	}
+	return url, ""
 }
 
 func ffailOnLagoonError(c *InstallerContext) (error, cleanup) {

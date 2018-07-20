@@ -36,3 +36,22 @@ func TestWrongActionDelete(t *testing.T) {
 	assert.NotNil(t, e)
 	assert.Equal(t, e.Error(), "the action \"3\" is not supported by the installer")
 }
+
+func TestRepositoryFlavor(t *testing.T) {
+
+	a, b := repositoryFlavor("aaa")
+	assert.Equal(t, a, "aaa")
+	assert.Equal(t, b, "")
+
+	a, b = repositoryFlavor("aaa@bbb")
+	assert.Equal(t, a, "aaa")
+	assert.Equal(t, b, "bbb")
+
+	a, b = repositoryFlavor("aaa@")
+	assert.Equal(t, a, "aaa")
+	assert.Equal(t, b, "")
+
+	a, b = repositoryFlavor("aaa@bbb@willbeignored")
+	assert.Equal(t, a, "aaa")
+	assert.Equal(t, b, "bbb")
+}

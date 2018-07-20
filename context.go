@@ -7,7 +7,11 @@ import (
 )
 
 type InstallerContext struct {
-	location      string
+	// The environment descriptor location
+	location string
+	// The environment descriptor name
+	name string
+	// The client requestion the CRUD operation on the environment
 	client        string
 	sshPublicKey  string
 	sshPrivateKey string

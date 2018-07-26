@@ -24,6 +24,7 @@ type InstallerContext struct {
 	ef            *engine.ExchangeFolder
 	session       *engine.EngineSession
 	buffer        map[string]engine.Buffer
+	cliparams     engine.ParamValues
 }
 
 func CreateContext(l *log.Logger) *InstallerContext {

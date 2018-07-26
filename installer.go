@@ -42,6 +42,7 @@ func runCreate(c *InstallerContext) (e error) {
 		fclient,
 		fexchangeFoldef,
 		flocation,
+		fcliparam,
 		flagoon,
 		ffailOnLagoonError,
 		fdownloadcore,
@@ -229,7 +230,6 @@ func fcreate(c *InstallerContext) (error, cleanup) {
 		// We launch the playbook
 		engine.LaunchPlayBook(c.lagoon.ComponentManager(), p.Component(), "create.yml", ev, env, *c.log)
 	}
-
 	return nil, nil
 }
 
@@ -308,7 +308,7 @@ func fsetuporchestrator(c *InstallerContext) (error, cleanup) {
 
 func fconsumesetuporchestrator(c *InstallerContext) (error, cleanup) {
 	for _, n := range c.lagoon.Environment().NodeSets {
-		c.log.Printf("Consume create for node %s", n.Name)
+		c.log.Printf("Consume orchestrator setup for node %s", n.Name)
 		p := n.Provider
 		proEf := c.ef.Input.Children[p.ProviderName()]
 		nodeEf := proEf.Input.Children[n.Name]
@@ -403,6 +403,22 @@ func flogLagoon(c *InstallerContext) (error, cleanup) {
 func flagoon(c *InstallerContext) (error, cleanup) {
 	root, flavor := repositoryFlavor(c.location)
 	c.lagoon, c.lagoonError = engine.Create(c.log, "/var/lib/lagoon", root, flavor, c.name)
+	return nil, noCleanUpRequired
+}
+
+func fcliparam(c *InstallerContext) (error, cleanup) {
+	ok := c.ef.Location.Contains(engine.CliParametersFileName)
+	if ok {
+		p, e := engine.ParseParamValues(engine.JoinPaths(c.ef.Location.Path(), engine.CliParametersFileName))
+		if e != nil {
+			return fmt.Errorf(ERROR_LOADING_CLI_PARAMETERS, e), nil
+		}
+		c.cliparams = p
+		c.log.Printf(LOG_CLI_PARAMS)
+		for k, v := range c.cliparams {
+			c.log.Printf("--> %v=%v", k, v)
+		}
+	}
 	return nil, noCleanUpRequired
 }
 

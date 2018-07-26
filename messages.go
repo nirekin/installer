@@ -6,6 +6,7 @@ const (
 	ERROR_REQUIRED_ENV             string = "the environment variable \"%s\" should be defined"
 	ERROR_PARSING_DESCRIPTOR       string = "Error parsing the descriptor %s"
 	ERROR_PARSING_ENVIRONMENT      string = "Error parsing the environment: %s"
+	ERROR_LOADING_CLI_PARAMETERS   string = "Error loading the CLI parameters : %s"
 	ERROR_CREATING_EXCHANGE_FOLDER string = "Error creating the exchange folder %s"
 	ERROR_GENERATING_SSH_KEYS      string = "Error generating the SSH keys %s"
 	ERROR_UNSUPORTED_ACTION        string = "the action \"%s\" is not supported by the installer"
@@ -27,6 +28,8 @@ const (
 
 	LOG_VALIDATION_LOG_WRITTEN string = "The validation logs have been written into %s\n"
 	LOG_VALIDATION_SUCCESSFUL  string = "The envinronment descriptor validation is successful!"
+
+	LOG_CLI_PARAMS string = "Using CLI parameters:"
 
 	LOG_PLATFORM_REPOSITORY   string = "Platform repository %s"
 	LOG_PLATFORM_VERSION      string = "Platform version %s"

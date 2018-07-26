@@ -75,10 +75,10 @@ func runCheck(c *InstallerContext) (e error) {
 }
 
 func fdownloadcore(c *InstallerContext) (error, cleanup) {
-	c.log.Printf(LOG_PLATFORM_VERSION, c.lagoon.Environment().LagoonPlatform.Version)
-	c.log.Printf(LOG_PLATFORM_REPOSITORY, c.lagoon.Environment().LagoonPlatform.Repository)
-	c.log.Printf(LOG_PLATFORM_COMPONENT_ID, c.lagoon.Environment().LagoonPlatform.Component.Id)
-	c.lagoon.ComponentManager().RegisterComponent(c.lagoon.Environment().LagoonPlatform.Component)
+	c.log.Printf(LOG_PLATFORM_VERSION, c.lagoon.Environment().Lagoon.Version)
+	c.log.Printf(LOG_PLATFORM_REPOSITORY, c.lagoon.Environment().Lagoon.Repository)
+	c.log.Printf(LOG_PLATFORM_COMPONENT_ID, c.lagoon.Environment().Lagoon.Component.Id)
+	c.lagoon.ComponentManager().RegisterComponent(c.lagoon.Environment().Lagoon.Component)
 	c.lagoon.ComponentManager().RegisterComponent(c.lagoon.Environment().Orchestrator.Component)
 	return nil, nil
 }
@@ -108,7 +108,14 @@ func fsession(c *InstallerContext) (error, cleanup) {
 	if e != nil {
 		return e, nil
 	}
-	engine.SaveFile(c.log, *c.ef.Location, engine.CreationSessionFileName, by)
+	f, e := engine.SaveFile(c.log, *c.ef.Location, engine.CreationSessionFileName, by)
+	if e != nil {
+		return e, nil
+	}
+	c.session = &engine.EngineSession{
+		CreationSession: createSession,
+		File:            f,
+	}
 	return nil, nil
 }
 
@@ -134,6 +141,7 @@ func fsetup(c *InstallerContext) (error, cleanup) {
 		// This is the first "real" step of the process so the used buffer is empty
 		emptyBuff := engine.CreateBuffer()
 
+		c.log.Printf("Running setup for provider %s", p.Name)
 		e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *proEfIn)
 
 		exv := engine.BuildExtraVars("", *proEfIn, *proEfOut, emptyBuff)
@@ -259,6 +267,7 @@ func fsetuporchestrator(c *InstallerContext) (error, cleanup) {
 
 		// We check if we have a buffer corresponding to the node output
 		buffer := c.getBuffer(nodeEf.Output)
+		bufferPro := c.getBuffer(proEf.Output)
 
 		// Prepare parameters
 		bp := engine.BuilBaseParam(c.client, uid, p.ProviderName(), c.sshPublicKey, c.sshPrivateKey)
@@ -283,6 +292,9 @@ func fsetuporchestrator(c *InstallerContext) (error, cleanup) {
 		env.Add("http_proxy", c.httpProxy)
 		env.Add("https_proxy", c.httpsProxy)
 		env.AddBuffer(buffer) // We consume the potentials environment variables comming from the buffer
+
+		// ugly but .... TODO change this
+		env.AddBuffer(bufferPro)
 
 		// Prepare extra vars
 		exv := engine.BuildExtraVars("", *nodeEf.Input, *nodeEf.Output, buffer)

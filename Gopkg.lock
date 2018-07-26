@@ -45,13 +45,13 @@
     ".",
     "ssh"
   ]
-  revision = "0b4084e1924c0dfc020e97e3e0afba07c008cbf9"
+  revision = "8ef54ddf1e56b820626cc0e7a21c1fc8db39cc78"
 
 [[projects]]
   branch = "master"
   name = "github.com/lagoon-platform/model"
   packages = ["."]
-  revision = "2e538ebc33f846b573e86ec129702d42d3636302"
+  revision = "2d106e6e58a2940fcd66148bf3c3fd94fb7ba2e6"
 
 [[projects]]
   branch = "master"

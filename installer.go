@@ -68,6 +68,7 @@ func runCheck(c *InstallerContext) (e error) {
 		fproxy,
 		fexchangeFoldef,
 		flocation,
+		fcliparam,
 		flagoon,
 		flogLagoon,
 	}

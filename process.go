@@ -3,7 +3,7 @@ package installer
 // cleanup represents a cleanup method to rollback what has been done by a step
 type cleanup func(c *InstallerContext) error
 
-// step represents a sinlge ste used to compose a process executed by the installer
+// step represents a sinlge step used to compose a process executed by the installer
 type step func(c *InstallerContext) (error, cleanup)
 
 func noCleanUpRequired(c *InstallerContext) error {

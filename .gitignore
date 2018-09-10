@@ -17,3 +17,5 @@
 
 # Go dep
 vendor/
+
+.idea/

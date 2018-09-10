@@ -16,18 +16,18 @@ type NodeExtraVars struct {
 
 func Run(c *InstallerContext) (e error) {
 	// Check if the received action is supporter by the engine
-	c.log.Println("Running the installer")
+	c.log.Println(LOG_RUNNING)
 	a := os.Getenv(engine.ActionEnvVariableKey)
 	switch a {
 	case engine.ActionCreate.String():
-		c.log.Println("Action Create asked")
+		c.log.Println(LOG_ACTION_CREATE)
 		e = runCreate(c)
 	case engine.ActionCheck.String():
-		c.log.Println("Action Check asked")
+		c.log.Println(LOG_ACTION_CHECK)
 		e = runCheck(c)
 	default:
 		if a == "" {
-			a = "No action specified"
+			a = LOG_NO_ACTION
 		}
 		e = fmt.Errorf(ERROR_UNSUPORTED_ACTION, a)
 	}
@@ -45,8 +45,6 @@ func runCreate(c *InstallerContext) (e error) {
 		fcliparam,
 		flagoon,
 		ffailOnLagoonError,
-		fdownloadcore,
-		fenrichExchangeFolder,
 		fsession,
 		fSHKeys,
 		fsetup,
@@ -74,15 +72,6 @@ func runCheck(c *InstallerContext) (e error) {
 	}
 	e = launch(calls, c)
 	return
-}
-
-func fdownloadcore(c *InstallerContext) (error, cleanup) {
-	c.log.Printf(LOG_PLATFORM_VERSION, c.lagoon.Environment().Lagoon.Version)
-	c.log.Printf(LOG_PLATFORM_REPOSITORY, c.lagoon.Environment().Lagoon.Repository)
-	c.log.Printf(LOG_PLATFORM_COMPONENT_ID, c.lagoon.Environment().Lagoon.Component.Id)
-	c.lagoon.ComponentManager().RegisterComponent(c.lagoon.Environment().Lagoon.Component)
-	c.lagoon.ComponentManager().RegisterComponent(c.lagoon.Environment().Orchestrator.Component)
-	return nil, nil
 }
 
 func fsession(c *InstallerContext) (error, cleanup) {
@@ -123,19 +112,31 @@ func fsession(c *InstallerContext) (error, cleanup) {
 
 func fsetup(c *InstallerContext) (error, cleanup) {
 	for _, p := range c.lagoon.Environment().Providers {
-		c.log.Printf("Running setup for provider %s", p.Name)
+		c.log.Printf(LOG_RUNNING_SETUP_FOR, p.Name)
 
-		proEf := c.ef.Input.Children[p.Name]
-		proEfIn := proEf.Input
-		proEfOut := proEf.Output
+		// Provider setup exchange folder
+		setupProviderEf, e := c.ef.Input.AddChildExchangeFolder("setup_provider_" + p.Name)
+		if e != nil {
+			c.log.Printf(ERROR_ADDING_EXCHANGE_FOLDER, "setup_provider_"+p.Name, e.Error())
+			return e, nil
+		}
+		e = setupProviderEf.Create()
+		if e != nil {
+			c.log.Printf(ERROR_CREATING_EXCHANGE_FOLDER, "setup_provider_"+p.Name, e.Error())
+			return e, nil
+		}
+		setupProviderEfIn := setupProviderEf.Input
+		setupProviderEfOut := setupProviderEf.Output
 
+		// Prepare parameters
 		bp := engine.BuilBaseParam(c.client, "", p.Name, c.sshPublicKey, c.sshPrivateKey)
+		bp.AddNamedMap("params", p.Parameters)
 		b, e := bp.Content()
 		if e != nil {
 			return e, nil
 		}
 
-		e = proEfIn.Write(b, engine.ParamYamlFileName)
+		_, e = engine.SaveFile(c.log, *setupProviderEfIn, engine.ParamYamlFileName, b)
 		if e != nil {
 			return e, nil
 		}
@@ -143,16 +144,26 @@ func fsetup(c *InstallerContext) (error, cleanup) {
 		// This is the first "real" step of the process so the used buffer is empty
 		emptyBuff := engine.CreateBuffer()
 
-		c.log.Printf("Running setup for provider %s", p.Name)
-		e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *proEfIn)
+		e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *setupProviderEfIn)
+		if e != nil {
+			return e, nil
+		}
 
-		exv := engine.BuildExtraVars("", *proEfIn, *proEfOut, emptyBuff)
+		// Prepare extra vars
+		exv := engine.BuildExtraVars("", *setupProviderEfIn, *setupProviderEfOut, emptyBuff)
 
+		// Prepare environment variables
 		env := engine.BuildEnvVars()
 		env.Add("http_proxy", c.httpProxy)
 		env.Add("https_proxy", c.httpsProxy)
 
-		engine.LaunchPlayBook(c.lagoon.ComponentManager(), p.Component, "setup.yml", exv, env, *c.log)
+		// Adding the environment variables from the provider
+		for envK, envV := range p.EnvVars {
+			env.Add(envK, envV)
+		}
+
+		// We launch the playbook
+		engine.LaunchPlayBook(c.lagoon.ComponentManager(), p.Component.Resolve(), "setup.yml", exv, env, *c.log)
 	}
 	return nil, nil
 }
@@ -160,61 +171,61 @@ func fsetup(c *InstallerContext) (error, cleanup) {
 func fconsumesetup(c *InstallerContext) (error, cleanup) {
 	for _, p := range c.lagoon.Environment().Providers {
 		c.log.Printf("Consume setup for provider %s", p.Name)
-		proEfOut := c.ef.Input.Children[p.Name].Output
-		err, buffer := engine.GetBuffer(proEfOut, c.log, "provider:"+p.Name)
+		setupProviderEfOut := c.ef.Input.Children["setup_provider_"+p.Name].Output
+		err, buffer := engine.GetBuffer(setupProviderEfOut, c.log, "provider:"+p.Name)
 		if err != nil {
 			return err, nil
 		}
 		// Keep a reference on the buffer based on the output folder
-		c.buffer[proEfOut.Path()] = buffer
+		c.buffer[setupProviderEfOut.Path()] = buffer
 	}
 	return nil, nil
 }
 
 func fcreate(c *InstallerContext) (error, cleanup) {
-	var proEf *engine.ExchangeFolder
-	var nodeEf *engine.ExchangeFolder
-	var e error
 
 	for _, n := range c.lagoon.Environment().NodeSets {
 		c.log.Printf(LOG_PROCESSING_NODE, n.Name)
 		// unique id of the nodeset
 		uid := c.session.CreationSession.Uids[n.Name]
 
-		p := n.Provider
+		p := n.Provider.Resolve()
 
-		// Provider exchange folder
-		proEf = c.ef.Input.Children[p.ProviderName()]
+		// Provider setup exchange folder
+		setupProviderEf := c.ef.Input.Children["setup_provider_"+p.Name]
+		// We check if we have a buffer corresponding to the provider setup output
+		buffer := c.getBuffer(setupProviderEf.Output)
 
-		// We check if we have a buffer corresponding to the provider output
-		buffer := c.getBuffer(proEf.Output)
-
-		// Node exchange folder
-		nodeEf, e = proEf.Input.AddChildExchangeFolder(n.Name)
+		// Node creation exchange folder
+		nodeCreateEf, e := c.ef.Input.AddChildExchangeFolder("create_" + n.Name)
 		if e != nil {
+			c.log.Printf(ERROR_ADDING_EXCHANGE_FOLDER, "create_"+n.Name, e.Error())
 			return e, nil
 		}
-		e = nodeEf.Create()
+		e = nodeCreateEf.Create()
 		if e != nil {
+			c.log.Printf(ERROR_CREATING_EXCHANGE_FOLDER, "create_"+n.Name, e.Error())
 			return e, nil
 		}
 
 		// Prepare parameters
-		bp := engine.BuilBaseParam(c.client, uid, p.ProviderName(), c.sshPublicKey, c.sshPrivateKey)
-		np := n.NodeParams()
-		bp.AddInt("instances", np.Instances)
-		bp.AddNamedMap("params", np.Params)
-		bp.AddInterface("volumes", n.Provider.Volumes())
-		bp.AddBuffer(buffer) // We consume the potentials params comming from the buffer
+		bp := engine.BuilBaseParam(c.client, uid, p.Name, c.sshPublicKey, c.sshPrivateKey)
+		bp.AddInt("instances", n.Instances)
+		bp.AddNamedMap("params", p.Parameters)
+		bp.AddInterface("volumes", n.Volumes)
+		bp.AddBuffer(buffer)
 
 		b, e := bp.Content()
 		if e != nil {
 			return e, nil
 		}
-		engine.SaveFile(c.log, *nodeEf.Input, engine.ParamYamlFileName, b)
+		_, e = engine.SaveFile(c.log, *nodeCreateEf.Input, engine.ParamYamlFileName, b)
+		if e != nil {
+			return e, nil
+		}
 
 		// Prepare components map
-		e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *nodeEf.Input)
+		e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *nodeCreateEf.Input)
 		if e != nil {
 			return e, noCleanUpRequired
 		}
@@ -223,13 +234,13 @@ func fcreate(c *InstallerContext) (error, cleanup) {
 		env := engine.BuildEnvVars()
 		env.Add("http_proxy", c.httpProxy)
 		env.Add("https_proxy", c.httpsProxy)
-		env.AddBuffer(buffer) // We consume the potentials environment variables comming from the buffer
+		env.AddBuffer(buffer)
 
 		// Prepare extra vars
-		ev := engine.BuildExtraVars("", *nodeEf.Input, *nodeEf.Output, buffer)
+		ev := engine.BuildExtraVars("", *nodeCreateEf.Input, *nodeCreateEf.Output, buffer)
 
 		// We launch the playbook
-		engine.LaunchPlayBook(c.lagoon.ComponentManager(), p.Component(), "create.yml", ev, env, *c.log)
+		engine.LaunchPlayBook(c.lagoon.ComponentManager(), p.Component.Resolve(), "create.yml", ev, env, *c.log)
 	}
 	return nil, nil
 }
@@ -237,17 +248,13 @@ func fcreate(c *InstallerContext) (error, cleanup) {
 func fconsumecreate(c *InstallerContext) (error, cleanup) {
 	for _, n := range c.lagoon.Environment().NodeSets {
 		c.log.Printf("Consume create for node %s", n.Name)
-		p := n.Provider
-		proEf := c.ef.Input.Children[p.ProviderName()]
-		nodeEf := proEf.Input.Children[n.Name]
-		doutFolder := nodeEf.Output
-
-		err, buffer := engine.GetBuffer(doutFolder, c.log, "node:"+n.Name)
+		nodeCreateEf := c.ef.Input.Children["create_"+n.Name].Output
+		err, buffer := engine.GetBuffer(nodeCreateEf, c.log, "node:"+n.Name)
 		// Keep a reference on the buffer based on the output folder
 		if err != nil {
 			return err, nil
 		}
-		c.buffer[doutFolder.Path()] = buffer
+		c.buffer[nodeCreateEf.Path()] = buffer
 	}
 	return nil, nil
 }
@@ -259,31 +266,47 @@ func fsetuporchestrator(c *InstallerContext) (error, cleanup) {
 		// unique id of the nodeset
 		uid := c.session.CreationSession.Uids[n.Name]
 
-		p := n.Provider
+		p := n.Provider.Resolve()
 
-		// Provider exchange folder
-		proEf := c.ef.Input.Children[p.ProviderName()]
+		// Provider setup exchange folder
+		setupProviderEf := c.ef.Input.Children["setup_provider_"+p.Name]
+		// We check if we have a buffer corresponding to the provider setup
+		bufferPro := c.getBuffer(setupProviderEf.Output)
+
 		// Node exchange folder
-		nodeEf := proEf.Input.Children[n.Name]
-
+		nodeCreationEf := c.ef.Input.Children["create_"+n.Name]
 		// We check if we have a buffer corresponding to the node output
-		buffer := c.getBuffer(nodeEf.Output)
-		bufferPro := c.getBuffer(proEf.Output)
+		buffer := c.getBuffer(nodeCreationEf.Output)
+
+		// Orchestrator setup exchange folder
+		setupOrcherstratorEf, e := c.ef.Input.AddChildExchangeFolder("setup_orchestrator_" + n.Name)
+		if e != nil {
+			c.log.Printf(ERROR_ADDING_EXCHANGE_FOLDER, "setup_orchestrator_"+n.Name, e.Error())
+			return e, nil
+		}
+		e = setupOrcherstratorEf.Create()
+		if e != nil {
+			c.log.Printf(ERROR_CREATING_EXCHANGE_FOLDER, "setup_orchestrator_"+n.Name, e.Error())
+			return e, nil
+		}
 
 		// Prepare parameters
-		bp := engine.BuilBaseParam(c.client, uid, p.ProviderName(), c.sshPublicKey, c.sshPrivateKey)
-		op := n.OrchestratorParams()
+		bp := engine.BuilBaseParam(c.client, uid, p.Name, c.sshPublicKey, c.sshPrivateKey)
+		op := n.Orchestrator.OrchestratorParams()
 		bp.AddNamedMap("orchestrator", op)
-		bp.AddBuffer(buffer) // We consume the potentials params comming from the buffer
+		bp.AddBuffer(buffer)
 
 		b, e := bp.Content()
 		if e != nil {
 			return e, nil
 		}
-		engine.SaveFile(c.log, *nodeEf.Input, engine.ParamYamlFileName, b)
+		_, e = engine.SaveFile(c.log, *setupOrcherstratorEf.Input, engine.ParamYamlFileName, b)
+		if e != nil {
+			return e, nil
+		}
 
 		// Prepare components map
-		e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *nodeEf.Input)
+		e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *setupOrcherstratorEf.Input)
 		if e != nil {
 			return e, noCleanUpRequired
 		}
@@ -292,16 +315,16 @@ func fsetuporchestrator(c *InstallerContext) (error, cleanup) {
 		env := engine.BuildEnvVars()
 		env.Add("http_proxy", c.httpProxy)
 		env.Add("https_proxy", c.httpsProxy)
-		env.AddBuffer(buffer) // We consume the potentials environment variables comming from the buffer
+		env.AddBuffer(buffer)
 
 		// ugly but .... TODO change this
 		env.AddBuffer(bufferPro)
 
 		// Prepare extra vars
-		exv := engine.BuildExtraVars("", *nodeEf.Input, *nodeEf.Output, buffer)
+		exv := engine.BuildExtraVars("", *setupOrcherstratorEf.Input, *setupOrcherstratorEf.Output, buffer)
 
 		// We launch the playbook
-		engine.LaunchPlayBook(c.lagoon.ComponentManager(), c.lagoon.Environment().Orchestrator.Component, "setup.yml", exv, env, *c.log)
+		engine.LaunchPlayBook(c.lagoon.ComponentManager(), c.lagoon.Environment().Orchestrator.Component.Resolve(), "setup.yml", exv, env, *c.log)
 	}
 
 	return nil, nil
@@ -310,16 +333,13 @@ func fsetuporchestrator(c *InstallerContext) (error, cleanup) {
 func fconsumesetuporchestrator(c *InstallerContext) (error, cleanup) {
 	for _, n := range c.lagoon.Environment().NodeSets {
 		c.log.Printf("Consume orchestrator setup for node %s", n.Name)
-		p := n.Provider
-		proEf := c.ef.Input.Children[p.ProviderName()]
-		nodeEf := proEf.Input.Children[n.Name]
-		doutFolder := nodeEf.Output
-		err, buffer := engine.GetBuffer(doutFolder, c.log, "node:"+n.Name)
+		setupOrcherstratorEf := c.ef.Input.Children["setup_orchestrator_"+n.Name].Output
+		err, buffer := engine.GetBuffer(setupOrcherstratorEf, c.log, "node:"+n.Name)
 		// Keep a reference on the buffer based on the output folder
 		if err != nil {
 			return err, nil
 		}
-		c.buffer[doutFolder.Path()] = buffer
+		c.buffer[setupOrcherstratorEf.Path()] = buffer
 	}
 	return nil, nil
 }
@@ -330,30 +350,48 @@ func forchestrator(c *InstallerContext) (error, cleanup) {
 		c.log.Printf(LOG_PROCESSING_NODE, n.Name)
 		uid := c.session.CreationSession.Uids[n.Name]
 
-		p := n.Provider
+		p := n.Provider.Resolve()
 
-		// Provider exchange folder
-		proEf := c.ef.Input.Children[p.ProviderName()]
-		// Node exchange folder
-		nodeEf := proEf.Input.Children[n.Name]
+		// Provider setup exchange folder
+		setupProviderEf := c.ef.Input.Children["setup_provider_"+p.Name]
+		// We check if we have a buffer corresponding to the provider setup
+		bufferPro := c.getBuffer(setupProviderEf.Output)
 
-		// We check if we have a buffer corresponding to the node output
-		buffer := c.getBuffer(nodeEf.Output)
+		// Orchestrator setup exchange folder
+		setupOrcherstratorEf := c.ef.Input.Children["setup_orchestrator_"+n.Name]
+		// We check if we have a buffer corresponding to the orchestrator setup
+		buffer := c.getBuffer(setupOrcherstratorEf.Output)
+
+		installOrcherstratorEf, e := c.ef.Input.AddChildExchangeFolder("install_orchestrator_" + n.Name)
+		if e != nil {
+			c.log.Printf(ERROR_ADDING_EXCHANGE_FOLDER, "install_orchestrator_"+n.Name, e.Error())
+			return e, nil
+		}
+		e = installOrcherstratorEf.Create()
+		if e != nil {
+			c.log.Printf(ERROR_CREATING_EXCHANGE_FOLDER, "install_orchestrator_"+n.Name, e.Error())
+			return e, nil
+		}
 
 		// Prepare parameters
-		bp := engine.BuilBaseParam(c.client, uid, p.ProviderName(), c.sshPublicKey, c.sshPrivateKey)
-		op := n.OrchestratorParams()
-		bp.AddNamedMap("orchestrator", op)
-		bp.AddBuffer(buffer) // We consume the potentials parameters comming from the buffer
+		bp := engine.BuilBaseParam(c.client, uid, p.Name, c.sshPublicKey, c.sshPrivateKey)
+		bp.AddNamedMap("orchestrator", n.Orchestrator.OrchestratorParams())
+
+		// ugly but .... TODO change this
+		bp.AddInterface("proxy", p.Proxy)
+		bp.AddBuffer(buffer)
 
 		b, e := bp.Content()
 		if e != nil {
 			return e, nil
 		}
-		engine.SaveFile(c.log, *nodeEf.Input, engine.ParamYamlFileName, b)
+		_, e = engine.SaveFile(c.log, *installOrcherstratorEf.Input, engine.ParamYamlFileName, b)
+		if e != nil {
+			return e, nil
+		}
 
 		// Prepare components map
-		e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *nodeEf.Input)
+		e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *installOrcherstratorEf.Input)
 		if e != nil {
 			return e, noCleanUpRequired
 		}
@@ -362,15 +400,17 @@ func forchestrator(c *InstallerContext) (error, cleanup) {
 		env := engine.BuildEnvVars()
 		env.Add("http_proxy", c.httpProxy)
 		env.Add("https_proxy", c.httpsProxy)
-		env.AddBuffer(buffer) // We consume the potentials environment variables comming from the buffer
+		env.AddBuffer(buffer)
+
+		// ugly but .... TODO change this
+		env.AddBuffer(bufferPro)
 
 		// Prepare extra vars
-		exv := engine.BuildExtraVars("", *nodeEf.Input, *nodeEf.Output, buffer)
+		exv := engine.BuildExtraVars("", *installOrcherstratorEf.Input, *installOrcherstratorEf.Output, buffer)
 
 		// We launch the playbook
-		engine.LaunchPlayBook(c.lagoon.ComponentManager(), c.lagoon.Environment().Orchestrator.Component, "install.yml", exv, env, *c.log)
+		engine.LaunchPlayBook(c.lagoon.ComponentManager(), c.lagoon.Environment().Orchestrator.Component.Resolve(), "install.yml", exv, env, *c.log)
 	}
-
 	return nil, nil
 }
 
@@ -388,11 +428,15 @@ func flogLagoon(c *InstallerContext) (error, cleanup) {
 				return fmt.Errorf(ERROR_GENERIC, e), nil
 			}
 			// print both errors and warnings into the report file
-			engine.SaveFile(c.log, *c.ef.Output, ERROR_CREATING_REPORT_FILE, b)
+			path, err := engine.SaveFile(c.log, *c.ef.Output, VALIDATION_OUTPUT_FILE, b)
+			if err != nil {
+				// in case of error writing the report file
+				return fmt.Errorf(ERROR_CREATING_REPORT_FILE, path), nil
+			}
+
 			if vErrs.HasErrors() {
 				// in case of validation error we stop
-
-				return fmt.Errorf(ERROR_PARSING_ENVIRONMENT, ve.Error()), nil
+				return fmt.Errorf(ERROR_PARSING_DESCRIPTOR, ve.Error()), nil
 			}
 		}
 	} else {
@@ -403,22 +447,31 @@ func flogLagoon(c *InstallerContext) (error, cleanup) {
 
 func flagoon(c *InstallerContext) (error, cleanup) {
 	root, flavor := repositoryFlavor(c.location)
-	c.lagoon, c.lagoonError = engine.Create(c.log, "/var/lib/lagoon", root, flavor, c.name)
+	if c.cliparams != nil {
+		c.log.Printf("Creating lagoon environment with parameter for templating")
+		c.lagoon, c.lagoonError = engine.Create(c.log, "/var/lib/lagoon", c.cliparams)
+	} else {
+		c.log.Printf("Creating lagoon environment without parameter for templating")
+		c.lagoon, c.lagoonError = engine.Create(c.log, "/var/lib/lagoon", map[string]interface{}{})
+	}
+
+	if c.lagoonError == nil {
+		c.lagoonError = c.lagoon.Init(root, flavor) // FIXME: really need custom descriptor name ?
+	}
+	c.log.Printf("Created environment providers %v \n", c.lagoon.Environment().Providers)
 	return nil, noCleanUpRequired
 }
 
 func fcliparam(c *InstallerContext) (error, cleanup) {
 	ok := c.ef.Location.Contains(engine.CliParametersFileName)
 	if ok {
-		p, e := engine.ParseParamValues(engine.JoinPaths(c.ef.Location.Path(), engine.CliParametersFileName))
+
+		p, e := engine.ParseParams(engine.JoinPaths(c.ef.Location.Path(), engine.CliParametersFileName))
 		if e != nil {
 			return fmt.Errorf(ERROR_LOADING_CLI_PARAMETERS, e), nil
 		}
 		c.cliparams = p
-		c.log.Printf(LOG_CLI_PARAMS)
-		for k, v := range c.cliparams {
-			c.log.Printf("--> %v=%v", k, v)
-		}
+		c.log.Printf(LOG_CLI_PARAMS, c.cliparams)
 	}
 	return nil, noCleanUpRequired
 }
@@ -436,9 +489,16 @@ func repositoryFlavor(url string) (string, string) {
 
 func ffailOnLagoonError(c *InstallerContext) (error, cleanup) {
 	if c.lagoonError != nil {
-		c.log.Println(c.lagoonError)
-		return fmt.Errorf(ERROR_PARSING_DESCRIPTOR, c.lagoonError.Error()), noCleanUpRequired
+		vErrs, ok := c.lagoonError.(model.ValidationErrors)
+		if ok {
+			if vErrs.HasErrors() {
+				// in case of validation error we stop
+				c.log.Println(c.lagoonError)
+				return fmt.Errorf(ERROR_PARSING_DESCRIPTOR, c.lagoonError.Error()), noCleanUpRequired
+			}
+		} else {
+			return fmt.Errorf(ERROR_PARSING_ENVIRONMENT, c.lagoonError.Error()), nil
+		}
 	}
-
 	return nil, noCleanUpRequired
 }

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/lagoon-platform/engine"
+	"github.com/lagoon-platform/engine/ansible"
 	"github.com/lagoon-platform/model"
 )
 
@@ -163,7 +164,7 @@ func fsetup(c *InstallerContext) (error, cleanup) {
 		}
 
 		// We launch the playbook
-		engine.LaunchPlayBook(c.lagoon.ComponentManager(), p.Component.Resolve(), "setup.yml", exv, env, *c.log)
+		ansible.LaunchPlayBook(c.lagoon.ComponentManager(), p.Component.Resolve(), "setup.yml", exv, env, *c.log)
 	}
 	return nil, nil
 }
@@ -240,7 +241,7 @@ func fcreate(c *InstallerContext) (error, cleanup) {
 		ev := engine.BuildExtraVars("", *nodeCreateEf.Input, *nodeCreateEf.Output, buffer)
 
 		// We launch the playbook
-		engine.LaunchPlayBook(c.lagoon.ComponentManager(), p.Component.Resolve(), "create.yml", ev, env, *c.log)
+		ansible.LaunchPlayBook(c.lagoon.ComponentManager(), p.Component.Resolve(), "create.yml", ev, env, *c.log)
 	}
 	return nil, nil
 }
@@ -324,7 +325,7 @@ func fsetuporchestrator(c *InstallerContext) (error, cleanup) {
 		exv := engine.BuildExtraVars("", *setupOrcherstratorEf.Input, *setupOrcherstratorEf.Output, buffer)
 
 		// We launch the playbook
-		engine.LaunchPlayBook(c.lagoon.ComponentManager(), c.lagoon.Environment().Orchestrator.Component.Resolve(), "setup.yml", exv, env, *c.log)
+		ansible.LaunchPlayBook(c.lagoon.ComponentManager(), c.lagoon.Environment().Orchestrator.Component.Resolve(), "setup.yml", exv, env, *c.log)
 	}
 
 	return nil, nil
@@ -377,8 +378,8 @@ func forchestrator(c *InstallerContext) (error, cleanup) {
 		bp := engine.BuilBaseParam(c.client, uid, p.Name, c.sshPublicKey, c.sshPrivateKey)
 		bp.AddNamedMap("orchestrator", n.Orchestrator.OrchestratorParams())
 
-		// ugly but .... TODO change this
-		bp.AddInterface("proxy", p.Proxy)
+		pr := c.lagoon.Environment().Providers["aws"].Proxy
+		bp.AddInterface("proxy", pr)
 		bp.AddBuffer(buffer)
 
 		b, e := bp.Content()
@@ -409,7 +410,7 @@ func forchestrator(c *InstallerContext) (error, cleanup) {
 		exv := engine.BuildExtraVars("", *installOrcherstratorEf.Input, *installOrcherstratorEf.Output, buffer)
 
 		// We launch the playbook
-		engine.LaunchPlayBook(c.lagoon.ComponentManager(), c.lagoon.Environment().Orchestrator.Component.Resolve(), "install.yml", exv, env, *c.log)
+		ansible.LaunchPlayBook(c.lagoon.ComponentManager(), c.lagoon.Environment().Orchestrator.Component.Resolve(), "install.yml", exv, env, *c.log)
 	}
 	return nil, nil
 }

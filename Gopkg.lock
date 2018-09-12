@@ -43,15 +43,16 @@
   name = "github.com/lagoon-platform/engine"
   packages = [
     ".",
+    "ansible",
     "ssh"
   ]
-  revision = "f5cb0a0b339448d73635ab68c4a3edf42f9b1587"
+  revision = "d557575a73870b00f47f85df28152d8a057df031"
 
 [[projects]]
   branch = "master"
   name = "github.com/lagoon-platform/model"
   packages = ["."]
-  revision = "c52ead022e145a8e7c89f32b14bd9b121d906ee7"
+  revision = "1a700d86dfdc582ad91aa8605576d253ada0c155"
 
 [[projects]]
   name = "github.com/mitchellh/go-homedir"
@@ -222,6 +223,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1a303e165d5cdcda7a12d0b1a246121e83c54443fe69d0b6c4dd35c719522e70"
+  inputs-digest = "ece2026376e70f02f40dad7c34ef66fd98489f08620324ccdf5e4a25b6684ac6"
   solver-name = "gps-cdcl"
   solver-version = 1

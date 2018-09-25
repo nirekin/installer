@@ -10,9 +10,7 @@ type InstallerContext struct {
 	// The environment descriptor location
 	location string
 	// The environment descriptor name
-	name string
-	// The client requestion the CRUD operation on the environment
-	client        string
+	name          string
 	sshPublicKey  string
 	sshPrivateKey string
 	httpProxy     string
@@ -52,4 +50,8 @@ func (c *InstallerContext) getBuffer(p *engine.FolderPath) engine.Buffer {
 		return val
 	}
 	return engine.CreateBuffer()
+}
+
+func (c *InstallerContext) BuildBaseParam(nodeSetId string, provider string) engine.BaseParam {
+	return engine.BuildBaseParam(c.lagoon.Environment().QualifiedName(), nodeSetId, provider, c.sshPublicKey, c.sshPrivateKey)
 }

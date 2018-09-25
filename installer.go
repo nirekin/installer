@@ -40,7 +40,6 @@ func runCreate(c *InstallerContext) (e error) {
 	// Stack of functions required to create an environment
 	calls := []step{
 		fproxy,
-		fclient,
 		fexchangeFoldef,
 		flocation,
 		fcliparam,
@@ -81,7 +80,7 @@ func fsession(c *InstallerContext) (error, cleanup) {
 
 	b, s := engine.HasCreationSession(*c.ef)
 	if !b {
-		createSession = &engine.CreationSession{Client: c.client, Uids: make(map[string]string)}
+		createSession = &engine.CreationSession{Client: c.lagoon.Environment().QualifiedName().String(), Uids: make(map[string]string)}
 	} else {
 		createSession = s.CreationSession
 	}
@@ -89,10 +88,10 @@ func fsession(c *InstallerContext) (error, cleanup) {
 	// If needed creates the missing Uids for the nodes
 	for _, n := range c.lagoon.Environment().NodeSets {
 		if val, ok := createSession.Uids[n.Name]; ok {
-			c.log.Printf(LOG_REUSING_UID_FOR_CLIENT, val, c.client, n.Name)
+			c.log.Printf(LOG_REUSING_UID_FOR_CLIENT, val, c.lagoon.Environment().QualifiedName(), n.Name)
 		} else {
 			uid := engine.GetUId()
-			c.log.Printf(LOG_CREATING_UID_FOR_CLIENT, uid, c.client, n.Name)
+			c.log.Printf(LOG_CREATING_UID_FOR_CLIENT, uid, c.lagoon.Environment().QualifiedName(), n.Name)
 			createSession.Add(n.Name, uid)
 		}
 	}
@@ -130,7 +129,7 @@ func fsetup(c *InstallerContext) (error, cleanup) {
 		setupProviderEfOut := setupProviderEf.Output
 
 		// Prepare parameters
-		bp := engine.BuilBaseParam(c.client, "", p.Name, c.sshPublicKey, c.sshPrivateKey)
+		bp := c.BuildBaseParam("", p.Name)
 		bp.AddNamedMap("params", p.Parameters)
 		b, e := bp.Content()
 		if e != nil {
@@ -210,7 +209,7 @@ func fcreate(c *InstallerContext) (error, cleanup) {
 		}
 
 		// Prepare parameters
-		bp := engine.BuilBaseParam(c.client, uid, p.Name, c.sshPublicKey, c.sshPrivateKey)
+		bp := c.BuildBaseParam(uid, p.Name)
 		bp.AddInt("instances", n.Instances)
 		bp.AddNamedMap("params", p.Parameters)
 		bp.AddInterface("volumes", n.Volumes)
@@ -292,7 +291,8 @@ func fsetuporchestrator(c *InstallerContext) (error, cleanup) {
 		}
 
 		// Prepare parameters
-		bp := engine.BuilBaseParam(c.client, uid, p.Name, c.sshPublicKey, c.sshPrivateKey)
+		//bp := engine.BuilBaseParam(c.lagoon.Environment().QualifiedName(), uid, p.Name, c.sshPublicKey, c.sshPrivateKey)
+		bp := c.BuildBaseParam(uid, p.Name)
 		op := n.Orchestrator.OrchestratorParams()
 		bp.AddNamedMap("orchestrator", op)
 		bp.AddBuffer(buffer)
@@ -375,7 +375,7 @@ func forchestrator(c *InstallerContext) (error, cleanup) {
 		}
 
 		// Prepare parameters
-		bp := engine.BuilBaseParam(c.client, uid, p.Name, c.sshPublicKey, c.sshPrivateKey)
+		bp := c.BuildBaseParam(uid, p.Name)
 		bp.AddNamedMap("orchestrator", n.Orchestrator.OrchestratorParams())
 
 		pr := c.lagoon.Environment().Providers["aws"].Proxy

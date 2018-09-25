@@ -1,6 +1,7 @@
 package installer
 
 import (
+	"log"
 	"testing"
 
 	"github.com/lagoon-platform/engine"
@@ -63,7 +64,7 @@ func TestBaseParamFromContext(t *testing.T) {
 	assert.NotNil(t, bp)
 
 	assert.Equal(t, 2, len(bp.Body))
-
+	log.Printf("BP %v \n", bp)
 	val, ok := bp.Body["environment"]
 	assert.True(t, ok)
 	mSi, ok := val.(map[string]interface{})
@@ -89,7 +90,6 @@ func TestBaseAlmostEmptyParamFromContext(t *testing.T) {
 		},
 	}
 	bp := c.BuildBaseParam("nodeId", "providerName")
-	log.Printf("BP: %v\n", bp)
 	assert.NotNil(t, bp)
 
 	assert.Equal(t, 2, len(bp.Body))
@@ -116,7 +116,6 @@ func TestBaseEmptyParamFromContext(t *testing.T) {
 		},
 	}
 	bp := c.BuildBaseParam("", "")
-	log.Printf("BP: %v\n", bp)
 	assert.NotNil(t, bp)
 
 	assert.Equal(t, 2, len(bp.Body))

@@ -46,13 +46,13 @@
     "ansible",
     "ssh"
   ]
-  revision = "d557575a73870b00f47f85df28152d8a057df031"
+  revision = "727f54407e2cad259760833de8693a1fa16d4be1"
 
 [[projects]]
   branch = "master"
   name = "github.com/lagoon-platform/model"
   packages = ["."]
-  revision = "1a700d86dfdc582ad91aa8605576d253ada0c155"
+  revision = "24295414c6e9188af14361fb40616ee298f4aa8a"
 
 [[projects]]
   name = "github.com/mitchellh/go-homedir"

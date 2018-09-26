@@ -12,6 +12,14 @@ type ExecutionReport struct {
 	Context *InstallerContext
 }
 
+func (r ExecutionReport) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Steps stepContexts `json:",omitempty"`
+	}{
+		Steps: r.Steps,
+	})
+}
+
 // Content returns the json representation of the report steps
 func (er ExecutionReport) Content() (b []byte, e error) {
 	b, e = json.Marshal(&er.Steps)

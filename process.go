@@ -1,6 +1,8 @@
 package installer
 
 import (
+	"encoding/json"
+
 	"github.com/lagoon-platform/model"
 )
 
@@ -16,6 +18,20 @@ type stepContext struct {
 	Err       error
 	ErrDetail string
 	CleanUp   cleanup
+}
+
+func (r stepContext) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		StepName     string `json:",omitempty"`
+		AppliedTo    string `json:",omitempty"`
+		Error        string `json:",omitempty"`
+		ErrorDetails string `json:",omitempty"`
+	}{
+		StepName:     r.StepName,
+		AppliedTo:    r.AppliedTo.HumanDescribe(),
+		Error:        r.Err.Error(),
+		ErrorDetails: r.ErrDetail,
+	})
 }
 
 // Array() initialize an array with the step context

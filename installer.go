@@ -71,7 +71,7 @@ func runCheck(c *InstallerContext) (e error) {
 		flagoon,
 		flogCheck,
 	}
-	rep := launch(calls, c) 
+	rep := launch(calls, c)
 	e = rep.Error
 	return
 }
@@ -101,14 +101,14 @@ func fsession(c *InstallerContext) stepContexts {
 	by, e := createSession.Content()
 	if e != nil {
 		sc.Err = e
-		sc.ErrDetail = fmt.Sprintf("An error occured marshalling the session content :v", createSession)
+		sc.ErrDetail = fmt.Sprintf("An error occured marshalling the session content :%v", createSession)
 		goto MoveOut
 	}
 	{
 		f, e := engine.SaveFile(c.log, *c.ef.Location, engine.CreationSessionFileName, by)
 		if e != nil {
 			sc.Err = e
-			sc.ErrDetail = fmt.Sprintf("An error occured saving the session file into :v", c.ef.Location.Path())
+			sc.ErrDetail = fmt.Sprintf("An error occured saving the session file into :%v", c.ef.Location.Path())
 			goto MoveOut
 		}
 		c.session = &engine.EngineSession{
@@ -160,7 +160,7 @@ func fsetup(c *InstallerContext) stepContexts {
 		_, e = engine.SaveFile(c.log, *setupProviderEfIn, engine.ParamYamlFileName, b)
 		if e != nil {
 			sc.Err = e
-			sc.ErrDetail = fmt.Sprintf("An error occured saving the parameter file into :v", setupProviderEfIn.Path())
+			sc.ErrDetail = fmt.Sprintf("An error occured saving the parameter file into :%v", setupProviderEfIn.Path())
 			sCs.Add(sc)
 			continue
 		}
@@ -171,7 +171,7 @@ func fsetup(c *InstallerContext) stepContexts {
 		e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *setupProviderEfIn)
 		if e != nil {
 			sc.Err = e
-			sc.ErrDetail = fmt.Sprintf("An error occured saving the components file into :v", setupProviderEfIn.Path())
+			sc.ErrDetail = fmt.Sprintf("An error occured saving the components file into :%v", setupProviderEfIn.Path())
 			sCs.Add(sc)
 			continue
 		}
@@ -266,7 +266,7 @@ func fcreate(c *InstallerContext) stepContexts {
 		_, e = engine.SaveFile(c.log, *nodeCreateEf.Input, engine.ParamYamlFileName, b)
 		if e != nil {
 			sc.Err = e
-			sc.ErrDetail = fmt.Sprintf("An error occured saving the parameter file into :v", nodeCreateEf.Input.Path())
+			sc.ErrDetail = fmt.Sprintf("An error occured saving the parameter file into :%v", nodeCreateEf.Input.Path())
 			sCs.Add(sc)
 			continue
 		}
@@ -275,7 +275,7 @@ func fcreate(c *InstallerContext) stepContexts {
 		e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *nodeCreateEf.Input)
 		if e != nil {
 			sc.Err = e
-			sc.ErrDetail = fmt.Sprintf("An error occured saving the components file into :v", nodeCreateEf.Input.Path())
+			sc.ErrDetail = fmt.Sprintf("An error occured saving the components file into :%v", nodeCreateEf.Input.Path())
 			sCs.Add(sc)
 			continue
 		}
@@ -372,7 +372,7 @@ func fsetuporchestrator(c *InstallerContext) stepContexts {
 		_, e = engine.SaveFile(c.log, *setupOrcherstratorEf.Input, engine.ParamYamlFileName, b)
 		if e != nil {
 			sc.Err = e
-			sc.ErrDetail = fmt.Sprintf("An error occured saving the parameter file into :v", setupOrcherstratorEf.Input.Path())
+			sc.ErrDetail = fmt.Sprintf("An error occured saving the parameter file into :%v", setupOrcherstratorEf.Input.Path())
 			sCs.Add(sc)
 			continue
 		}
@@ -381,7 +381,7 @@ func fsetuporchestrator(c *InstallerContext) stepContexts {
 		e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *setupOrcherstratorEf.Input)
 		if e != nil {
 			sc.Err = e
-			sc.ErrDetail = fmt.Sprintf("An error occured saving the components file into :v", setupOrcherstratorEf.Input.Path())
+			sc.ErrDetail = fmt.Sprintf("An error occured saving the components file into :%v", setupOrcherstratorEf.Input.Path())
 			sCs.Add(sc)
 			continue
 		}
@@ -481,7 +481,7 @@ func forchestrator(c *InstallerContext) stepContexts {
 		_, e = engine.SaveFile(c.log, *installOrcherstratorEf.Input, engine.ParamYamlFileName, b)
 		if e != nil {
 			sc.Err = e
-			sc.ErrDetail = fmt.Sprintf("An error occured saving the parameter file into :v", installOrcherstratorEf.Input.Path())
+			sc.ErrDetail = fmt.Sprintf("An error occured saving the parameter file into :%v", installOrcherstratorEf.Input.Path())
 			sCs.Add(sc)
 			continue
 		}
@@ -490,7 +490,7 @@ func forchestrator(c *InstallerContext) stepContexts {
 		e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *installOrcherstratorEf.Input)
 		if e != nil {
 			sc.Err = e
-			sc.ErrDetail = fmt.Sprintf("An error occured saving the components file into :v", installOrcherstratorEf.Input.Path())
+			sc.ErrDetail = fmt.Sprintf("An error occured saving the components file into :%v", installOrcherstratorEf.Input.Path())
 			sCs.Add(sc)
 			continue
 		}

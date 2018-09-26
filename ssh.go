@@ -38,13 +38,13 @@ func fSHKeys(c *InstallerContext) stepContexts {
 		_, e = engine.SaveFile(c.log, *c.ef.Input, engine.SSHPuplicKeyFileName, publicKey)
 		if e != nil {
 			sc.Err = e
-			sc.ErrDetail = fmt.Sprintf("An error occured saving the public key into :v", c.ef.Input.Path())
+			sc.ErrDetail = fmt.Sprintf("An error occured saving the public key into :%v", c.ef.Input.Path())
 			goto MoveOut
 		}
 		_, e = engine.SaveFile(c.log, *c.ef.Input, engine.SSHPrivateKeyFileName, privateKey)
 		if e != nil {
 			sc.Err = e
-			sc.ErrDetail = fmt.Sprintf("An error occured saving the private key into :v", c.ef.Input.Path())
+			sc.ErrDetail = fmt.Sprintf("An error occured saving the private key into :%v", c.ef.Input.Path())
 			goto MoveOut
 		}
 		c.sshPublicKey = filepath.Join(c.ef.Input.Path(), engine.SSHPuplicKeyFileName)

@@ -12,23 +12,23 @@ func TestInitStep(t *testing.T) {
 	s := InitStepContext("stepName", nil, noCleanUpRequired)
 	assert.NotNil(t, s)
 	assert.Nil(t, s.AppliedTo)
-	assert.Nil(t, s.Err)
-	assert.Equal(t, s.ErrDetail, "")
+	assert.Nil(t, s.Error)
+	assert.Equal(t, s.ErrorDetail, "")
 	assert.Equal(t, s.StepName, "stepName")
 
 	a := s.Array()
-	assert.Equal(t, len(a.contexts), 1)
+	assert.Equal(t, len(a.Contexts), 1)
 
 }
 
 func TestInitSteps(t *testing.T) {
 
 	s := InitStepContexts()
-	assert.Equal(t, len(s.contexts), 0)
+	assert.Equal(t, len(s.Contexts), 0)
 	s.Add(InitStepContext("stepName1", nil, noCleanUpRequired))
-	assert.Equal(t, len(s.contexts), 1)
+	assert.Equal(t, len(s.Contexts), 1)
 	s.Add(InitStepContext("stepName2", nil, noCleanUpRequired))
-	assert.Equal(t, len(s.contexts), 2)
+	assert.Equal(t, len(s.Contexts), 2)
 
 }
 
@@ -41,7 +41,7 @@ func TestLaunchSteps(t *testing.T) {
 	rep := launch(calls, &InstallerContext{})
 	assert.NotNil(t, rep)
 	assert.Nil(t, rep.Error)
-	scs := rep.Steps.contexts
+	scs := rep.Steps.Contexts
 	assert.Equal(t, len(scs), 3)
 
 	// Check the order of the executed steps
@@ -60,7 +60,7 @@ func TestLaunchStepsError(t *testing.T) {
 	rep := launch(calls, &InstallerContext{})
 	assert.NotNil(t, rep)
 	assert.NotNil(t, rep.Error)
-	scs := rep.Steps.contexts
+	scs := rep.Steps.Contexts
 	assert.Equal(t, len(scs), 4)
 
 	// Check the order of the executed steps
@@ -83,7 +83,7 @@ func TestLaunchStepsError2(t *testing.T) {
 	assert.NotNil(t, rep.Error)
 	// Because fStepMockError throws an error fStepMock3 is not invoked and
 	// then it is never returned into the report
-	scs := rep.Steps.contexts
+	scs := rep.Steps.Contexts
 	assert.Equal(t, len(scs), 3)
 
 	// Check the order of the executed steps
@@ -103,7 +103,7 @@ func TestLaunchStepsMultiples(t *testing.T) {
 	rep := launch(calls, &InstallerContext{})
 	assert.NotNil(t, rep)
 	assert.Nil(t, rep.Error)
-	scs := rep.Steps.contexts
+	scs := rep.Steps.Contexts
 	assert.Equal(t, len(scs), 6)
 	// Check the order of the executed steps
 	assert.Equal(t, scs[0].StepName, "Dummy step 1")
@@ -132,7 +132,7 @@ func fStepMock3(c *InstallerContext) stepContexts {
 
 func fStepMockError(c *InstallerContext) stepContexts {
 	sc := InitStepContext("Dummy step on error", nil, noCleanUpRequired)
-	sc.Err = fmt.Errorf("Dummy error")
+	sc.Error = fmt.Errorf("Dummy error")
 	return sc.Array()
 }
 

@@ -18,7 +18,7 @@ func TestNoProxy(t *testing.T) {
 	os.Unsetenv(engine.NoProxyEnvVariableKey)
 
 	sc := fproxy(c)
-	e := sc.contexts[0].Err
+	e := sc.Contexts[0].Error
 	assert.Nil(t, e)
 	assert.Equal(t, "", c.httpProxy)
 	assert.Equal(t, "", c.httpsProxy)
@@ -33,7 +33,7 @@ func TestProxy(t *testing.T) {
 	os.Setenv(engine.HttpsProxyEnvVariableKey, "https_value")
 	os.Setenv(engine.NoProxyEnvVariableKey, "no_value")
 	sc := fproxy(c)
-	e := sc.contexts[0].Err
+	e := sc.Contexts[0].Error
 	assert.Nil(t, e)
 	assert.Equal(t, "http_value", c.httpProxy)
 	assert.Equal(t, "https_value", c.httpsProxy)

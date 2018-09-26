@@ -15,7 +15,8 @@ func TestNoLocation(t *testing.T) {
 	os.Setenv(engine.ActionEnvVariableKey, engine.ActionCreate.String())
 	os.Unsetenv(engine.StarterEnvVariableKey)
 	os.Setenv(engine.StarterEnvNameVariableKey, "test_name")
-	e, _ := flocation(c)
+	sc := flocation(c)
+	e := sc.contexts[0].Err
 	assert.NotNil(t, e)
 	assert.Equal(t, e.Error(), "the environment variable \"LAGOON_ENV_DESCR\" should be defined")
 }
@@ -26,7 +27,8 @@ func TestNoName(t *testing.T) {
 	os.Setenv(engine.ActionEnvVariableKey, engine.ActionCreate.String())
 	os.Unsetenv(engine.StarterEnvNameVariableKey)
 	os.Setenv(engine.StarterEnvVariableKey, "test_location")
-	e, _ := flocation(c)
+	sc := flocation(c)
+	e := sc.contexts[0].Err
 	assert.NotNil(t, e)
 	assert.Equal(t, e.Error(), "the environment variable \"LAGOON_ENV_DESCR_NAME\" should be defined")
 }
@@ -37,7 +39,8 @@ func TestLocation(t *testing.T) {
 	os.Setenv(engine.ActionEnvVariableKey, engine.ActionCreate.String())
 	os.Setenv(engine.StarterEnvVariableKey, "test_location")
 	os.Setenv(engine.StarterEnvNameVariableKey, "test_name")
-	e, _ := flocation(c)
+	sc := flocation(c)
+	e := sc.contexts[0].Err
 	assert.Nil(t, e)
 	assert.Equal(t, c.location, "test_location")
 	assert.Equal(t, c.name, "test_name")

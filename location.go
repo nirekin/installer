@@ -10,14 +10,18 @@ import (
 // flocation extracts the descriptor location and descriptor  file name from the
 // environment variables "engine.StarterEnvVariableKey" and
 // engine.StarterEnvNameVariableKey
-func flocation(c *InstallerContext) (error, cleanup) {
+func flocation(c *InstallerContext) stepContexts {
+	sc := InitStepContext("Reading the descriptor location", nil, noCleanUpRequired)
 	c.location = os.Getenv(engine.StarterEnvVariableKey)
 	if c.location == "" {
-		return fmt.Errorf(ERROR_REQUIRED_ENV, engine.StarterEnvVariableKey), nil
+		sc.Err = fmt.Errorf(ERROR_REQUIRED_ENV, engine.StarterEnvVariableKey)
+		goto MoveOut
 	}
 	c.name = os.Getenv(engine.StarterEnvNameVariableKey)
 	if c.name == "" {
-		return fmt.Errorf(ERROR_REQUIRED_ENV, engine.StarterEnvNameVariableKey), nil
+		sc.Err = fmt.Errorf(ERROR_REQUIRED_ENV, engine.StarterEnvNameVariableKey)
+		goto MoveOut
 	}
-	return nil, noCleanUpRequired
+MoveOut:
+	return sc.Array()
 }

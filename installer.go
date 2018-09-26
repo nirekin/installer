@@ -37,7 +37,7 @@ func Run(c *InstallerContext) (e error) {
 
 func writeReport(rep ExecutionReport) error {
 	loc, e := rep.Generate()
-	if e == nil {
+	if e != nil {
 		return e
 	}
 	rep.Context.log.Printf(LOG_REPORT_WRITTEN, loc)
@@ -108,15 +108,17 @@ func fsession(c *InstallerContext) stepContexts {
 	}
 	by, e := createSession.Content()
 	if e != nil {
-		sc.Err = e
-		sc.ErrDetail = fmt.Sprintf("An error occured marshalling the session content :%v", createSession)
+		sc.Error = e
+		sc.ErrorOrigin = OriginLagoonInstaller
+		sc.ErrorDetail = fmt.Sprintf("An error occured marshalling the session content :%v", createSession)
 		goto MoveOut
 	}
 	{
 		f, e := engine.SaveFile(c.log, *c.ef.Location, engine.CreationSessionFileName, by)
 		if e != nil {
-			sc.Err = e
-			sc.ErrDetail = fmt.Sprintf("An error occured saving the session file into :%v", c.ef.Location.Path())
+			sc.Error = e
+			sc.ErrorOrigin = OriginLagoonInstaller
+			sc.ErrorDetail = fmt.Sprintf("An error occured saving the session file into :%v", c.ef.Location.Path())
 			goto MoveOut
 		}
 		c.session = &engine.EngineSession{
@@ -139,7 +141,8 @@ func fsetup(c *InstallerContext) stepContexts {
 		if e != nil {
 			err := fmt.Errorf(ERROR_ADDING_EXCHANGE_FOLDER, "setup_provider_"+p.Name, e.Error())
 			c.log.Printf(err.Error())
-			sc.Err = err
+			sc.Error = err
+			sc.ErrorOrigin = OriginLagoonInstaller
 			sCs.Add(sc)
 			continue
 		}
@@ -147,7 +150,8 @@ func fsetup(c *InstallerContext) stepContexts {
 		if e != nil {
 			err := fmt.Errorf(ERROR_CREATING_EXCHANGE_FOLDER, "setup_provider_"+p.Name, e.Error())
 			c.log.Printf(err.Error())
-			sc.Err = err
+			sc.Error = err
+			sc.ErrorOrigin = OriginLagoonInstaller
 			sCs.Add(sc)
 			continue
 		}
@@ -159,16 +163,18 @@ func fsetup(c *InstallerContext) stepContexts {
 		bp.AddNamedMap("params", p.Parameters)
 		b, e := bp.Content()
 		if e != nil {
-			sc.Err = e
-			sc.ErrDetail = fmt.Sprintf("An error occured creating the base parameters")
+			sc.Error = e
+			sc.ErrorOrigin = OriginLagoonInstaller
+			sc.ErrorDetail = fmt.Sprintf("An error occured creating the base parameters")
 			sCs.Add(sc)
 			continue
 		}
 
 		_, e = engine.SaveFile(c.log, *setupProviderEfIn, engine.ParamYamlFileName, b)
 		if e != nil {
-			sc.Err = e
-			sc.ErrDetail = fmt.Sprintf("An error occured saving the parameter file into :%v", setupProviderEfIn.Path())
+			sc.Error = e
+			sc.ErrorOrigin = OriginLagoonInstaller
+			sc.ErrorDetail = fmt.Sprintf("An error occured saving the parameter file into :%v", setupProviderEfIn.Path())
 			sCs.Add(sc)
 			continue
 		}
@@ -178,8 +184,9 @@ func fsetup(c *InstallerContext) stepContexts {
 
 		e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *setupProviderEfIn)
 		if e != nil {
-			sc.Err = e
-			sc.ErrDetail = fmt.Sprintf("An error occured saving the components file into :%v", setupProviderEfIn.Path())
+			sc.Error = e
+			sc.ErrorOrigin = OriginLagoonInstaller
+			sc.ErrorDetail = fmt.Sprintf("An error occured saving the components file into :%v", setupProviderEfIn.Path())
 			sCs.Add(sc)
 			continue
 		}
@@ -212,8 +219,9 @@ func fconsumesetup(c *InstallerContext) stepContexts {
 		setupProviderEfOut := c.ef.Input.Children["setup_provider_"+p.Name].Output
 		err, buffer := engine.GetBuffer(setupProviderEfOut, c.log, "provider:"+p.Name)
 		if err != nil {
-			sc.Err = err
-			sc.ErrDetail = fmt.Sprintf("An error occured getting the buffer")
+			sc.Error = err
+			sc.ErrorOrigin = OriginLagoonInstaller
+			sc.ErrorDetail = fmt.Sprintf("An error occured getting the buffer")
 			sCs.Add(sc)
 			continue
 		}
@@ -244,7 +252,8 @@ func fcreate(c *InstallerContext) stepContexts {
 		if e != nil {
 			err := fmt.Errorf(ERROR_ADDING_EXCHANGE_FOLDER, "create_"+n.Name, e.Error())
 			c.log.Printf(err.Error())
-			sc.Err = err
+			sc.Error = err
+			sc.ErrorOrigin = OriginLagoonInstaller
 			sCs.Add(sc)
 			continue
 		}
@@ -252,7 +261,8 @@ func fcreate(c *InstallerContext) stepContexts {
 		if e != nil {
 			err := fmt.Errorf(ERROR_CREATING_EXCHANGE_FOLDER, "create_"+n.Name, e.Error())
 			c.log.Printf(err.Error())
-			sc.Err = err
+			sc.Error = err
+			sc.ErrorOrigin = OriginLagoonInstaller
 			sCs.Add(sc)
 			continue
 		}
@@ -266,15 +276,17 @@ func fcreate(c *InstallerContext) stepContexts {
 
 		b, e := bp.Content()
 		if e != nil {
-			sc.Err = e
-			sc.ErrDetail = fmt.Sprintf("An error occured creating the base parameters")
+			sc.Error = e
+			sc.ErrorOrigin = OriginLagoonInstaller
+			sc.ErrorDetail = fmt.Sprintf("An error occured creating the base parameters")
 			sCs.Add(sc)
 			continue
 		}
 		_, e = engine.SaveFile(c.log, *nodeCreateEf.Input, engine.ParamYamlFileName, b)
 		if e != nil {
-			sc.Err = e
-			sc.ErrDetail = fmt.Sprintf("An error occured saving the parameter file into :%v", nodeCreateEf.Input.Path())
+			sc.Error = e
+			sc.ErrorOrigin = OriginLagoonInstaller
+			sc.ErrorDetail = fmt.Sprintf("An error occured saving the parameter file into :%v", nodeCreateEf.Input.Path())
 			sCs.Add(sc)
 			continue
 		}
@@ -282,8 +294,9 @@ func fcreate(c *InstallerContext) stepContexts {
 		// Prepare components map
 		e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *nodeCreateEf.Input)
 		if e != nil {
-			sc.Err = e
-			sc.ErrDetail = fmt.Sprintf("An error occured saving the components file into :%v", nodeCreateEf.Input.Path())
+			sc.Error = e
+			sc.ErrorOrigin = OriginLagoonInstaller
+			sc.ErrorDetail = fmt.Sprintf("An error occured saving the components file into :%v", nodeCreateEf.Input.Path())
 			sCs.Add(sc)
 			continue
 		}
@@ -313,8 +326,9 @@ func fconsumecreate(c *InstallerContext) stepContexts {
 		err, buffer := engine.GetBuffer(nodeCreateEf, c.log, "node:"+n.Name)
 		// Keep a reference on the buffer based on the output folder
 		if err != nil {
-			sc.Err = err
-			sc.ErrDetail = fmt.Sprintf("An error occured getting the buffer")
+			sc.Error = err
+			sc.ErrorOrigin = OriginLagoonInstaller
+			sc.ErrorDetail = fmt.Sprintf("An error occured getting the buffer")
 			sCs.Add(sc)
 			continue
 		}
@@ -349,7 +363,8 @@ func fsetuporchestrator(c *InstallerContext) stepContexts {
 		if e != nil {
 			err := fmt.Errorf(ERROR_ADDING_EXCHANGE_FOLDER, "setup_orchestrator_"+n.Name, e.Error())
 			c.log.Printf(err.Error())
-			sc.Err = err
+			sc.Error = err
+			sc.ErrorOrigin = OriginLagoonInstaller
 			sCs.Add(sc)
 			continue
 
@@ -358,7 +373,8 @@ func fsetuporchestrator(c *InstallerContext) stepContexts {
 		if e != nil {
 			err := fmt.Errorf(ERROR_CREATING_EXCHANGE_FOLDER, "setup_orchestrator_"+n.Name, e.Error())
 			c.log.Printf(err.Error())
-			sc.Err = err
+			sc.Error = err
+			sc.ErrorOrigin = OriginLagoonInstaller
 			sCs.Add(sc)
 			continue
 		}
@@ -372,15 +388,17 @@ func fsetuporchestrator(c *InstallerContext) stepContexts {
 
 		b, e := bp.Content()
 		if e != nil {
-			sc.Err = e
-			sc.ErrDetail = fmt.Sprintf("An error occured creating the base parameters")
+			sc.Error = e
+			sc.ErrorOrigin = OriginLagoonInstaller
+			sc.ErrorDetail = fmt.Sprintf("An error occured creating the base parameters")
 			sCs.Add(sc)
 			continue
 		}
 		_, e = engine.SaveFile(c.log, *setupOrcherstratorEf.Input, engine.ParamYamlFileName, b)
 		if e != nil {
-			sc.Err = e
-			sc.ErrDetail = fmt.Sprintf("An error occured saving the parameter file into :%v", setupOrcherstratorEf.Input.Path())
+			sc.Error = e
+			sc.ErrorOrigin = OriginLagoonInstaller
+			sc.ErrorDetail = fmt.Sprintf("An error occured saving the parameter file into :%v", setupOrcherstratorEf.Input.Path())
 			sCs.Add(sc)
 			continue
 		}
@@ -388,8 +406,9 @@ func fsetuporchestrator(c *InstallerContext) stepContexts {
 		// Prepare components map
 		e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *setupOrcherstratorEf.Input)
 		if e != nil {
-			sc.Err = e
-			sc.ErrDetail = fmt.Sprintf("An error occured saving the components file into :%v", setupOrcherstratorEf.Input.Path())
+			sc.Error = e
+			sc.ErrorOrigin = OriginLagoonInstaller
+			sc.ErrorDetail = fmt.Sprintf("An error occured saving the components file into :%v", setupOrcherstratorEf.Input.Path())
 			sCs.Add(sc)
 			continue
 		}
@@ -423,8 +442,9 @@ func fconsumesetuporchestrator(c *InstallerContext) stepContexts {
 		err, buffer := engine.GetBuffer(setupOrcherstratorEf, c.log, "node:"+n.Name)
 		// Keep a reference on the buffer based on the output folder
 		if err != nil {
-			sc.Err = err
-			sc.ErrDetail = fmt.Sprintf("An error occured getting the buffer")
+			sc.Error = err
+			sc.ErrorOrigin = OriginLagoonInstaller
+			sc.ErrorDetail = fmt.Sprintf("An error occured getting the buffer")
 			sCs.Add(sc)
 			continue
 		}
@@ -457,7 +477,8 @@ func forchestrator(c *InstallerContext) stepContexts {
 		if e != nil {
 			err := fmt.Errorf(ERROR_ADDING_EXCHANGE_FOLDER, "install_orchestrator_"+n.Name, e.Error())
 			c.log.Printf(err.Error())
-			sc.Err = err
+			sc.Error = err
+			sc.ErrorOrigin = OriginLagoonInstaller
 			sCs.Add(sc)
 			continue
 		}
@@ -465,7 +486,8 @@ func forchestrator(c *InstallerContext) stepContexts {
 		if e != nil {
 			err := fmt.Errorf(ERROR_CREATING_EXCHANGE_FOLDER, "install_orchestrator_"+n.Name, e.Error())
 			c.log.Printf(err.Error())
-			sc.Err = err
+			sc.Error = err
+			sc.ErrorOrigin = OriginLagoonInstaller
 			sCs.Add(sc)
 			continue
 		}
@@ -481,15 +503,17 @@ func forchestrator(c *InstallerContext) stepContexts {
 
 		b, e := bp.Content()
 		if e != nil {
-			sc.Err = e
-			sc.ErrDetail = fmt.Sprintf("An error occured creating the base parameters")
+			sc.Error = e
+			sc.ErrorOrigin = OriginLagoonInstaller
+			sc.ErrorDetail = fmt.Sprintf("An error occured creating the base parameters")
 			sCs.Add(sc)
 			continue
 		}
 		_, e = engine.SaveFile(c.log, *installOrcherstratorEf.Input, engine.ParamYamlFileName, b)
 		if e != nil {
-			sc.Err = e
-			sc.ErrDetail = fmt.Sprintf("An error occured saving the parameter file into :%v", installOrcherstratorEf.Input.Path())
+			sc.Error = e
+			sc.ErrorOrigin = OriginLagoonInstaller
+			sc.ErrorDetail = fmt.Sprintf("An error occured saving the parameter file into :%v", installOrcherstratorEf.Input.Path())
 			sCs.Add(sc)
 			continue
 		}
@@ -497,8 +521,9 @@ func forchestrator(c *InstallerContext) stepContexts {
 		// Prepare components map
 		e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *installOrcherstratorEf.Input)
 		if e != nil {
-			sc.Err = e
-			sc.ErrDetail = fmt.Sprintf("An error occured saving the components file into :%v", installOrcherstratorEf.Input.Path())
+			sc.Error = e
+			sc.ErrorOrigin = OriginLagoonInstaller
+			sc.ErrorDetail = fmt.Sprintf("An error occured saving the components file into :%v", installOrcherstratorEf.Input.Path())
 			sCs.Add(sc)
 			continue
 		}
@@ -529,23 +554,27 @@ func flogCheck(c *InstallerContext) stepContexts {
 		vErrs, ok := ve.(model.ValidationErrors)
 		// if the error is not a "validation error" then we return it
 		if !ok {
-			sc.Err = fmt.Errorf(ERROR_PARSING_ENVIRONMENT, ve.Error())
+			sc.Error = fmt.Errorf(ERROR_PARSING_ENVIRONMENT, ve.Error())
+			sc.ErrorOrigin = OriginEnvironmentDescriptor
 		} else {
 			c.log.Printf(ve.Error())
 			b, e := vErrs.JSonContent()
 			if e != nil {
-				sc.Err = fmt.Errorf(ERROR_GENERIC, e)
+				sc.Error = fmt.Errorf(ERROR_GENERIC, e)
+				sc.ErrorOrigin = OriginLagoonInstaller
 			}
 			// print both errors and warnings into the report file
 			path, err := engine.SaveFile(c.log, *c.ef.Output, VALIDATION_OUTPUT_FILE, b)
 			if err != nil {
 				// in case of error writing the report file
-				sc.Err = fmt.Errorf(ERROR_CREATING_REPORT_FILE, path)
+				sc.Error = fmt.Errorf(ERROR_CREATING_REPORT_FILE, path)
+				sc.ErrorOrigin = OriginLagoonInstaller
 			}
 
 			if vErrs.HasErrors() {
 				// in case of validation error we stop
-				sc.Err = fmt.Errorf(ERROR_PARSING_DESCRIPTOR, ve.Error())
+				sc.Error = fmt.Errorf(ERROR_PARSING_DESCRIPTOR, ve.Error())
+				sc.ErrorOrigin = OriginLagoonInstaller
 			}
 		}
 	} else {
@@ -580,7 +609,8 @@ func fcliparam(c *InstallerContext) stepContexts {
 	if ok {
 		p, e := engine.ParseParams(engine.JoinPaths(c.ef.Location.Path(), engine.CliParametersFileName))
 		if e != nil {
-			sc.Err = fmt.Errorf(ERROR_LOADING_CLI_PARAMETERS, e)
+			sc.Error = fmt.Errorf(ERROR_LOADING_CLI_PARAMETERS, e)
+			sc.ErrorOrigin = OriginLagoonInstaller
 			goto MoveOut
 		}
 		c.cliparams = p
@@ -609,11 +639,13 @@ func ffailOnLagoonError(c *InstallerContext) stepContexts {
 			if vErrs.HasErrors() {
 				// in case of validation error we stop
 				c.log.Println(c.lagoonError)
-				sc.Err = fmt.Errorf(ERROR_PARSING_DESCRIPTOR, c.lagoonError.Error())
+				sc.Error = fmt.Errorf(ERROR_PARSING_DESCRIPTOR, c.lagoonError.Error())
+				sc.ErrorOrigin = OriginEnvironmentDescriptor
 				goto MoveOut
 			}
 		} else {
-			sc.Err = fmt.Errorf(ERROR_PARSING_ENVIRONMENT, c.lagoonError.Error())
+			sc.Error = fmt.Errorf(ERROR_PARSING_ENVIRONMENT, c.lagoonError.Error())
+			sc.ErrorOrigin = OriginEnvironmentDescriptor
 			goto MoveOut
 		}
 	}

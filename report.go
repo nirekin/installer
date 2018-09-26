@@ -13,22 +13,22 @@ type ExecutionReport struct {
 }
 
 func (r ExecutionReport) MarshalJSON() ([]byte, error) {
-	return json.Marshal(struct {
+	return json.MarshalIndent(struct {
 		Steps stepContexts `json:",omitempty"`
 	}{
 		Steps: r.Steps,
-	})
+	}, "", "    ")
 }
 
 // Content returns the json representation of the report steps
 func (er ExecutionReport) Content() (b []byte, e error) {
-	b, e = json.Marshal(&er.Steps)
+	b, e = json.MarshalIndent(&er.Steps, "", "    ")
 	return
 }
 
 func (er ExecutionReport) Generate() (string, error) {
 	b, err := er.Content()
-	if b != nil {
+	if err != nil {
 		return "", err
 	}
 	return engine.SaveFile(er.Context.log, *er.Context.ef.Output, REPORT_OUTPUT_FILE, b)

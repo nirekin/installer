@@ -61,7 +61,10 @@ func noCleanUpRequired(c *InstallerContext) error {
 // the cleanup will be invoked on all previously launched steps
 func launch(fs []step, c *InstallerContext) ExecutionReport {
 
-	r := &ExecutionReport{}
+	r := &ExecutionReport{
+		Context: c,
+	}
+
 	cleanups := []cleanup{}
 
 	for _, f := range fs {

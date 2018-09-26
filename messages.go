@@ -36,6 +36,8 @@ const (
 	LOG_VALIDATION_LOG_WRITTEN string = "The validation logs have been written into %s\n"
 	LOG_VALIDATION_SUCCESSFUL  string = "The envinronment descriptor validation is successful!"
 
+	LOG_REPORT_WRITTEN string = "The execution report file has been written in %s\n"
+
 	LOG_CLI_PARAMS string = "Using CLI parameters: %v"
 
 	LOG_PLATFORM_REPOSITORY   string = "Platform repository %s"

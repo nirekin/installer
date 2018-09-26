@@ -22,10 +22,10 @@ func Run(c *InstallerContext) (e error) {
 	switch a {
 	case engine.ActionCreate.String():
 		c.log.Println(LOG_ACTION_CREATE)
-		e = runCreate(c)
+		e = writeReport(runCreate(c))
 	case engine.ActionCheck.String():
 		c.log.Println(LOG_ACTION_CHECK)
-		e = runCheck(c)
+		e = writeReport(runCheck(c))
 	default:
 		if a == "" {
 			a = LOG_NO_ACTION
@@ -35,8 +35,20 @@ func Run(c *InstallerContext) (e error) {
 	return
 }
 
+func writeReport(rep ExecutionReport) error {
+	loc, e := rep.Generate()
+	if e == nil {
+		return e
+	}
+	rep.Context.log.Printf(LOG_REPORT_WRITTEN, loc)
+	if rep.Error != nil {
+		return rep.Error
+	}
+	return nil
+}
+
 // runCreate launches the environment creation
-func runCreate(c *InstallerContext) (e error) {
+func runCreate(c *InstallerContext) ExecutionReport {
 	// Stack of functions required to create an environment
 	calls := []step{
 		fproxy,
@@ -55,13 +67,11 @@ func runCreate(c *InstallerContext) (e error) {
 		fconsumesetuporchestrator,
 		forchestrator,
 	}
-	rep := launch(calls, c)
-	e = rep.Error
-	return
+	return launch(calls, c)
 }
 
 // runCheck launches the environment check
-func runCheck(c *InstallerContext) (e error) {
+func runCheck(c *InstallerContext) ExecutionReport {
 	// Stack of functions required to check an environment
 	calls := []step{
 		fproxy,
@@ -71,9 +81,7 @@ func runCheck(c *InstallerContext) (e error) {
 		flagoon,
 		flogCheck,
 	}
-	rep := launch(calls, c)
-	e = rep.Error
-	return
+	return launch(calls, c)
 }
 
 func fsession(c *InstallerContext) stepContexts {

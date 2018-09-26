@@ -603,23 +603,6 @@ func flagoon(c *InstallerContext) stepContexts {
 	return sc.Array()
 }
 
-func fcliparam(c *InstallerContext) stepContexts {
-	sc := InitStepContext("Reading substitution parameters", nil, noCleanUpRequired)
-	ok := c.ef.Location.Contains(engine.CliParametersFileName)
-	if ok {
-		p, e := engine.ParseParams(engine.JoinPaths(c.ef.Location.Path(), engine.CliParametersFileName))
-		if e != nil {
-			sc.Error = fmt.Errorf(ERROR_LOADING_CLI_PARAMETERS, e)
-			sc.ErrorOrigin = OriginLagoonInstaller
-			goto MoveOut
-		}
-		c.cliparams = p
-		c.log.Printf(LOG_CLI_PARAMS, c.cliparams)
-	}
-MoveOut:
-	return sc.Array()
-}
-
 //repositoryFlavor returns the repository flavor, branchn tag ..., based on the
 // presence of '@' into the given url
 func repositoryFlavor(url string) (string, string) {

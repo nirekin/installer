@@ -11,8 +11,7 @@ func fexchangeFoldef(c *InstallerContext) stepContexts {
 	var err error
 	c.ef, err = engine.CreateExchangeFolder(engine.InstallerVolume, "")
 	if err != nil {
-		sc.Error = fmt.Errorf(ERROR_CREATING_EXCHANGE_FOLDER, "lagoon_installer", err.Error())
-		sc.ErrorOrigin = OriginLagoonInstaller
+		InstallerFail(&sc, fmt.Errorf(ERROR_CREATING_EXCHANGE_FOLDER, "lagoon_installer", err.Error()), "")
 	}
 	return sc.Array()
 }

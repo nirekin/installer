@@ -2,34 +2,9 @@ package installer
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/lagoon-platform/model"
 )
-
-type ErrorLocalizer interface {
-	Localize() string
-}
-
-type SimpleErrorOrigin string
-
-func (c SimpleErrorOrigin) Localize() string {
-	return string(c)
-}
-
-const (
-	OriginLagoonInstaller       SimpleErrorOrigin = "Lagoon Installer"
-	OriginEnvironmentDescriptor SimpleErrorOrigin = "Environment descriptor"
-)
-
-type PlayBookErrorOrigin struct {
-	Playbook  string
-	Compoment string
-}
-
-func (p PlayBookErrorOrigin) Localize() string {
-	return fmt.Sprintf("Playbook: %s in component %s", p.Playbook, p.Compoment)
-}
 
 // stepContexts represents a chain of steps execution results
 type stepContexts struct {
@@ -52,11 +27,7 @@ func (r stepContext) MarshalJSON() ([]byte, error) {
 		StepName  string `json:",omitempty"`
 		AppliedTo string `json:",omitempty"`
 		Status    string
-		Error     *struct {
-			Message         string `json:",omitempty"`
-			DetailedMessage string `json:",omitempty"`
-			Origin          string `json:",omitempty"`
-		} `json:",omitempty"`
+		Error     *EngineError `json:",omitempty"`
 	}{
 		StepName: r.StepName,
 	}
@@ -65,17 +36,19 @@ func (r stepContext) MarshalJSON() ([]byte, error) {
 	}
 
 	if r.Error != nil {
+		s.Error = &EngineError{}
 		s.Error.Message = r.Error.Error()
 		s.Status = "Failure"
+		if r.ErrorDetail != "" {
+			s.Error.DetailedMessage = r.ErrorDetail
+		}
+
+		if r.ErrorOrigin != nil {
+			s.Error.Origin = r.ErrorOrigin.Localize()
+		}
+
 	} else {
 		s.Status = "Success"
-	}
-	if r.ErrorDetail != "" {
-		s.Error.DetailedMessage = r.ErrorDetail
-	}
-
-	if r.ErrorOrigin != nil {
-		s.Error.Origin = r.ErrorOrigin.Localize()
 	}
 
 	return json.MarshalIndent(s, "", "    ")

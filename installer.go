@@ -35,18 +35,6 @@ func Run(c *InstallerContext) (e error) {
 	return
 }
 
-func writeReport(rep ExecutionReport) error {
-	loc, e := rep.Generate()
-	if e != nil {
-		return e
-	}
-	rep.Context.log.Printf(LOG_REPORT_WRITTEN, loc)
-	if rep.Error != nil {
-		return rep.Error
-	}
-	return nil
-}
-
 // runCreate launches the environment creation
 func runCreate(c *InstallerContext) ExecutionReport {
 	// Stack of functions required to create an environment
@@ -108,17 +96,13 @@ func fsession(c *InstallerContext) stepContexts {
 	}
 	by, e := createSession.Content()
 	if e != nil {
-		sc.Error = e
-		sc.ErrorOrigin = OriginLagoonInstaller
-		sc.ErrorDetail = fmt.Sprintf("An error occured marshalling the session content :%v", createSession)
+		InstallerFail(&sc, e, fmt.Sprintf("An error occured marshalling the session content :%v", createSession))
 		goto MoveOut
 	}
 	{
 		f, e := engine.SaveFile(c.log, *c.ef.Location, engine.CreationSessionFileName, by)
 		if e != nil {
-			sc.Error = e
-			sc.ErrorOrigin = OriginLagoonInstaller
-			sc.ErrorDetail = fmt.Sprintf("An error occured saving the session file into :%v", c.ef.Location.Path())
+			InstallerFail(&sc, e, fmt.Sprintf("An error occured saving the session file into :%v", c.ef.Location.Path()))
 			goto MoveOut
 		}
 		c.session = &engine.EngineSession{
@@ -137,44 +121,20 @@ func fsetup(c *InstallerContext) stepContexts {
 		c.log.Printf(LOG_RUNNING_SETUP_FOR, p.Name)
 
 		// Provider setup exchange folder
-		setupProviderEf, e := c.ef.Input.AddChildExchangeFolder("setup_provider_" + p.Name)
-		if e != nil {
-			err := fmt.Errorf(ERROR_ADDING_EXCHANGE_FOLDER, "setup_provider_"+p.Name, e.Error())
-			c.log.Printf(err.Error())
-			sc.Error = err
-			sc.ErrorOrigin = OriginLagoonInstaller
+		setupProviderEf, ko := createChildExchangeFolder(c.ef.Input, "setup_provider_"+p.Name, &sc, c.log)
+		if ko {
 			sCs.Add(sc)
 			continue
 		}
-		e = setupProviderEf.Create()
-		if e != nil {
-			err := fmt.Errorf(ERROR_CREATING_EXCHANGE_FOLDER, "setup_provider_"+p.Name, e.Error())
-			c.log.Printf(err.Error())
-			sc.Error = err
-			sc.ErrorOrigin = OriginLagoonInstaller
-			sCs.Add(sc)
-			continue
-		}
+
 		setupProviderEfIn := setupProviderEf.Input
 		setupProviderEfOut := setupProviderEf.Output
 
 		// Prepare parameters
 		bp := c.BuildBaseParam("", p.Name)
 		bp.AddNamedMap("params", p.Parameters)
-		b, e := bp.Content()
-		if e != nil {
-			sc.Error = e
-			sc.ErrorOrigin = OriginLagoonInstaller
-			sc.ErrorDetail = fmt.Sprintf("An error occured creating the base parameters")
-			sCs.Add(sc)
-			continue
-		}
 
-		_, e = engine.SaveFile(c.log, *setupProviderEfIn, engine.ParamYamlFileName, b)
-		if e != nil {
-			sc.Error = e
-			sc.ErrorOrigin = OriginLagoonInstaller
-			sc.ErrorDetail = fmt.Sprintf("An error occured saving the parameter file into :%v", setupProviderEfIn.Path())
+		if ko := saveBaseParams(bp, c, setupProviderEfIn, &sc); ko {
 			sCs.Add(sc)
 			continue
 		}
@@ -182,11 +142,8 @@ func fsetup(c *InstallerContext) stepContexts {
 		// This is the first "real" step of the process so the used buffer is empty
 		emptyBuff := engine.CreateBuffer()
 
-		e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *setupProviderEfIn)
-		if e != nil {
-			sc.Error = e
-			sc.ErrorOrigin = OriginLagoonInstaller
-			sc.ErrorDetail = fmt.Sprintf("An error occured saving the components file into :%v", setupProviderEfIn.Path())
+		// Prepare components map
+		if ko := saveComponentMap(c, setupProviderEfIn, &sc); ko {
 			sCs.Add(sc)
 			continue
 		}
@@ -205,7 +162,19 @@ func fsetup(c *InstallerContext) stepContexts {
 		}
 
 		// We launch the playbook
-		ansible.LaunchPlayBook(c.lagoon.ComponentManager(), p.Component.Resolve(), "setup.yml", exv, env, *c.log)
+		err, code := ansible.LaunchPlayBook(c.lagoon.ComponentManager(), p.Component.Resolve(), "setup.yml", exv, env, "", *c.log)
+		if err != nil {
+			pEo := playBookErrorOrigin{
+				Playbook:  "setup.yml",
+				Compoment: p.Component.Resolve().Id,
+				Code:      code,
+			}
+			sc.Error = err
+			sc.ErrorDetail = "An error occured executing the playbook"
+			sc.ErrorOrigin = pEo
+			sCs.Add(sc)
+			continue
+		}
 		sCs.Add(sc)
 	}
 	return *sCs
@@ -219,9 +188,7 @@ func fconsumesetup(c *InstallerContext) stepContexts {
 		setupProviderEfOut := c.ef.Input.Children["setup_provider_"+p.Name].Output
 		err, buffer := engine.GetBuffer(setupProviderEfOut, c.log, "provider:"+p.Name)
 		if err != nil {
-			sc.Error = err
-			sc.ErrorOrigin = OriginLagoonInstaller
-			sc.ErrorDetail = fmt.Sprintf("An error occured getting the buffer")
+			InstallerFail(&sc, err, fmt.Sprintf("An error occured getting the buffer"))
 			sCs.Add(sc)
 			continue
 		}
@@ -248,21 +215,8 @@ func fcreate(c *InstallerContext) stepContexts {
 		buffer := c.getBuffer(setupProviderEf.Output)
 
 		// Node creation exchange folder
-		nodeCreateEf, e := c.ef.Input.AddChildExchangeFolder("create_" + n.Name)
-		if e != nil {
-			err := fmt.Errorf(ERROR_ADDING_EXCHANGE_FOLDER, "create_"+n.Name, e.Error())
-			c.log.Printf(err.Error())
-			sc.Error = err
-			sc.ErrorOrigin = OriginLagoonInstaller
-			sCs.Add(sc)
-			continue
-		}
-		e = nodeCreateEf.Create()
-		if e != nil {
-			err := fmt.Errorf(ERROR_CREATING_EXCHANGE_FOLDER, "create_"+n.Name, e.Error())
-			c.log.Printf(err.Error())
-			sc.Error = err
-			sc.ErrorOrigin = OriginLagoonInstaller
+		nodeCreateEf, ko := createChildExchangeFolder(c.ef.Input, "create_"+n.Name, &sc, c.log)
+		if ko {
 			sCs.Add(sc)
 			continue
 		}
@@ -274,29 +228,13 @@ func fcreate(c *InstallerContext) stepContexts {
 		bp.AddInterface("volumes", n.Volumes)
 		bp.AddBuffer(buffer)
 
-		b, e := bp.Content()
-		if e != nil {
-			sc.Error = e
-			sc.ErrorOrigin = OriginLagoonInstaller
-			sc.ErrorDetail = fmt.Sprintf("An error occured creating the base parameters")
-			sCs.Add(sc)
-			continue
-		}
-		_, e = engine.SaveFile(c.log, *nodeCreateEf.Input, engine.ParamYamlFileName, b)
-		if e != nil {
-			sc.Error = e
-			sc.ErrorOrigin = OriginLagoonInstaller
-			sc.ErrorDetail = fmt.Sprintf("An error occured saving the parameter file into :%v", nodeCreateEf.Input.Path())
+		if ko := saveBaseParams(bp, c, nodeCreateEf.Input, &sc); ko {
 			sCs.Add(sc)
 			continue
 		}
 
 		// Prepare components map
-		e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *nodeCreateEf.Input)
-		if e != nil {
-			sc.Error = e
-			sc.ErrorOrigin = OriginLagoonInstaller
-			sc.ErrorDetail = fmt.Sprintf("An error occured saving the components file into :%v", nodeCreateEf.Input.Path())
+		if ko := saveComponentMap(c, nodeCreateEf.Input, &sc); ko {
 			sCs.Add(sc)
 			continue
 		}
@@ -310,8 +248,25 @@ func fcreate(c *InstallerContext) stepContexts {
 		// Prepare extra vars
 		ev := engine.BuildExtraVars("", *nodeCreateEf.Input, *nodeCreateEf.Output, buffer)
 
+		inventory := ""
+		if len(buffer.Inventories) > 0 {
+			inventory = buffer.Inventories["inventory_path"]
+		}
+
 		// We launch the playbook
-		ansible.LaunchPlayBook(c.lagoon.ComponentManager(), p.Component.Resolve(), "create.yml", ev, env, *c.log)
+		err, code := ansible.LaunchPlayBook(c.lagoon.ComponentManager(), p.Component.Resolve(), "create.yml", ev, env, inventory, *c.log)
+		if err != nil {
+			pEo := playBookErrorOrigin{
+				Playbook:  "create.yml",
+				Compoment: p.Component.Resolve().Id,
+				Code:      code,
+			}
+			sc.Error = err
+			sc.ErrorDetail = "An error occured executing the playbook"
+			sc.ErrorOrigin = pEo
+			sCs.Add(sc)
+			continue
+		}
 		sCs.Add(sc)
 	}
 	return *sCs
@@ -326,9 +281,7 @@ func fconsumecreate(c *InstallerContext) stepContexts {
 		err, buffer := engine.GetBuffer(nodeCreateEf, c.log, "node:"+n.Name)
 		// Keep a reference on the buffer based on the output folder
 		if err != nil {
-			sc.Error = err
-			sc.ErrorOrigin = OriginLagoonInstaller
-			sc.ErrorDetail = fmt.Sprintf("An error occured getting the buffer")
+			InstallerFail(&sc, err, fmt.Sprintf("An error occured getting the buffer"))
 			sCs.Add(sc)
 			continue
 		}
@@ -359,22 +312,8 @@ func fsetuporchestrator(c *InstallerContext) stepContexts {
 		buffer := c.getBuffer(nodeCreationEf.Output)
 
 		// Orchestrator setup exchange folder
-		setupOrcherstratorEf, e := c.ef.Input.AddChildExchangeFolder("setup_orchestrator_" + n.Name)
-		if e != nil {
-			err := fmt.Errorf(ERROR_ADDING_EXCHANGE_FOLDER, "setup_orchestrator_"+n.Name, e.Error())
-			c.log.Printf(err.Error())
-			sc.Error = err
-			sc.ErrorOrigin = OriginLagoonInstaller
-			sCs.Add(sc)
-			continue
-
-		}
-		e = setupOrcherstratorEf.Create()
-		if e != nil {
-			err := fmt.Errorf(ERROR_CREATING_EXCHANGE_FOLDER, "setup_orchestrator_"+n.Name, e.Error())
-			c.log.Printf(err.Error())
-			sc.Error = err
-			sc.ErrorOrigin = OriginLagoonInstaller
+		setupOrcherstratorEf, ko := createChildExchangeFolder(c.ef.Input, "setup_orchestrator_"+n.Name, &sc, c.log)
+		if ko {
 			sCs.Add(sc)
 			continue
 		}
@@ -386,29 +325,13 @@ func fsetuporchestrator(c *InstallerContext) stepContexts {
 		bp.AddNamedMap("orchestrator", op)
 		bp.AddBuffer(buffer)
 
-		b, e := bp.Content()
-		if e != nil {
-			sc.Error = e
-			sc.ErrorOrigin = OriginLagoonInstaller
-			sc.ErrorDetail = fmt.Sprintf("An error occured creating the base parameters")
-			sCs.Add(sc)
-			continue
-		}
-		_, e = engine.SaveFile(c.log, *setupOrcherstratorEf.Input, engine.ParamYamlFileName, b)
-		if e != nil {
-			sc.Error = e
-			sc.ErrorOrigin = OriginLagoonInstaller
-			sc.ErrorDetail = fmt.Sprintf("An error occured saving the parameter file into :%v", setupOrcherstratorEf.Input.Path())
+		if ko := saveBaseParams(bp, c, setupOrcherstratorEf.Input, &sc); ko {
 			sCs.Add(sc)
 			continue
 		}
 
 		// Prepare components map
-		e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *setupOrcherstratorEf.Input)
-		if e != nil {
-			sc.Error = e
-			sc.ErrorOrigin = OriginLagoonInstaller
-			sc.ErrorDetail = fmt.Sprintf("An error occured saving the components file into :%v", setupOrcherstratorEf.Input.Path())
+		if ko := saveComponentMap(c, setupOrcherstratorEf.Input, &sc); ko {
 			sCs.Add(sc)
 			continue
 		}
@@ -425,8 +348,25 @@ func fsetuporchestrator(c *InstallerContext) stepContexts {
 		// Prepare extra vars
 		exv := engine.BuildExtraVars("", *setupOrcherstratorEf.Input, *setupOrcherstratorEf.Output, buffer)
 
+		inventory := ""
+		if len(bufferPro.Inventories) > 0 {
+			inventory = bufferPro.Inventories["inventory_path"]
+		}
+
 		// We launch the playbook
-		ansible.LaunchPlayBook(c.lagoon.ComponentManager(), c.lagoon.Environment().Orchestrator.Component.Resolve(), "setup.yml", exv, env, *c.log)
+		err, code := ansible.LaunchPlayBook(c.lagoon.ComponentManager(), c.lagoon.Environment().Orchestrator.Component.Resolve(), "setup.yml", exv, env, inventory, *c.log)
+		if err != nil {
+			pEo := playBookErrorOrigin{
+				Playbook:  "setup.yml",
+				Compoment: p.Component.Resolve().Id,
+				Code:      code,
+			}
+			sc.Error = err
+			sc.ErrorDetail = "An error occured executing the playbook"
+			sc.ErrorOrigin = pEo
+			sCs.Add(sc)
+			continue
+		}
 		sCs.Add(sc)
 	}
 
@@ -442,9 +382,7 @@ func fconsumesetuporchestrator(c *InstallerContext) stepContexts {
 		err, buffer := engine.GetBuffer(setupOrcherstratorEf, c.log, "node:"+n.Name)
 		// Keep a reference on the buffer based on the output folder
 		if err != nil {
-			sc.Error = err
-			sc.ErrorOrigin = OriginLagoonInstaller
-			sc.ErrorDetail = fmt.Sprintf("An error occured getting the buffer")
+			InstallerFail(&sc, err, fmt.Sprintf("An error occured getting the buffer"))
 			sCs.Add(sc)
 			continue
 		}
@@ -473,21 +411,8 @@ func forchestrator(c *InstallerContext) stepContexts {
 		// We check if we have a buffer corresponding to the orchestrator setup
 		buffer := c.getBuffer(setupOrcherstratorEf.Output)
 
-		installOrcherstratorEf, e := c.ef.Input.AddChildExchangeFolder("install_orchestrator_" + n.Name)
-		if e != nil {
-			err := fmt.Errorf(ERROR_ADDING_EXCHANGE_FOLDER, "install_orchestrator_"+n.Name, e.Error())
-			c.log.Printf(err.Error())
-			sc.Error = err
-			sc.ErrorOrigin = OriginLagoonInstaller
-			sCs.Add(sc)
-			continue
-		}
-		e = installOrcherstratorEf.Create()
-		if e != nil {
-			err := fmt.Errorf(ERROR_CREATING_EXCHANGE_FOLDER, "install_orchestrator_"+n.Name, e.Error())
-			c.log.Printf(err.Error())
-			sc.Error = err
-			sc.ErrorOrigin = OriginLagoonInstaller
+		installOrcherstratorEf, ko := createChildExchangeFolder(c.ef.Input, "install_orchestrator_"+n.Name, &sc, c.log)
+		if ko {
 			sCs.Add(sc)
 			continue
 		}
@@ -501,29 +426,13 @@ func forchestrator(c *InstallerContext) stepContexts {
 		bp.AddInterface("proxy", pr)
 		bp.AddBuffer(buffer)
 
-		b, e := bp.Content()
-		if e != nil {
-			sc.Error = e
-			sc.ErrorOrigin = OriginLagoonInstaller
-			sc.ErrorDetail = fmt.Sprintf("An error occured creating the base parameters")
-			sCs.Add(sc)
-			continue
-		}
-		_, e = engine.SaveFile(c.log, *installOrcherstratorEf.Input, engine.ParamYamlFileName, b)
-		if e != nil {
-			sc.Error = e
-			sc.ErrorOrigin = OriginLagoonInstaller
-			sc.ErrorDetail = fmt.Sprintf("An error occured saving the parameter file into :%v", installOrcherstratorEf.Input.Path())
+		if ko := saveBaseParams(bp, c, installOrcherstratorEf.Input, &sc); ko {
 			sCs.Add(sc)
 			continue
 		}
 
 		// Prepare components map
-		e = c.lagoon.ComponentManager().SaveComponentsPaths(c.log, c.lagoon.Environment(), *installOrcherstratorEf.Input)
-		if e != nil {
-			sc.Error = e
-			sc.ErrorOrigin = OriginLagoonInstaller
-			sc.ErrorDetail = fmt.Sprintf("An error occured saving the components file into :%v", installOrcherstratorEf.Input.Path())
+		if ko := saveComponentMap(c, installOrcherstratorEf.Input, &sc); ko {
 			sCs.Add(sc)
 			continue
 		}
@@ -540,8 +449,25 @@ func forchestrator(c *InstallerContext) stepContexts {
 		// Prepare extra vars
 		exv := engine.BuildExtraVars("", *installOrcherstratorEf.Input, *installOrcherstratorEf.Output, buffer)
 
+		inventory := ""
+		if len(bufferPro.Inventories) > 0 {
+			inventory = bufferPro.Inventories["inventory_path"]
+		}
+
 		// We launch the playbook
-		ansible.LaunchPlayBook(c.lagoon.ComponentManager(), c.lagoon.Environment().Orchestrator.Component.Resolve(), "install.yml", exv, env, *c.log)
+		err, code := ansible.LaunchPlayBook(c.lagoon.ComponentManager(), c.lagoon.Environment().Orchestrator.Component.Resolve(), "install.yml", exv, env, inventory, *c.log)
+		if err != nil {
+			pEo := playBookErrorOrigin{
+				Playbook:  "install.yml",
+				Compoment: p.Component.Resolve().Id,
+				Code:      code,
+			}
+			sc.Error = err
+			sc.ErrorDetail = "An error occured executing the playbook"
+			sc.ErrorOrigin = pEo
+			sCs.Add(sc)
+			continue
+		}
 		sCs.Add(sc)
 	}
 	return *sCs
@@ -554,27 +480,23 @@ func flogCheck(c *InstallerContext) stepContexts {
 		vErrs, ok := ve.(model.ValidationErrors)
 		// if the error is not a "validation error" then we return it
 		if !ok {
-			sc.Error = fmt.Errorf(ERROR_PARSING_ENVIRONMENT, ve.Error())
-			sc.ErrorOrigin = OriginEnvironmentDescriptor
+			DescriptorFail(&sc, fmt.Errorf(ERROR_PARSING_ENVIRONMENT, ve.Error()), "")
 		} else {
 			c.log.Printf(ve.Error())
 			b, e := vErrs.JSonContent()
 			if e != nil {
-				sc.Error = fmt.Errorf(ERROR_GENERIC, e)
-				sc.ErrorOrigin = OriginLagoonInstaller
+				DescriptorFail(&sc, fmt.Errorf(ERROR_GENERIC, e), "")
 			}
 			// print both errors and warnings into the report file
 			path, err := engine.SaveFile(c.log, *c.ef.Output, VALIDATION_OUTPUT_FILE, b)
 			if err != nil {
 				// in case of error writing the report file
-				sc.Error = fmt.Errorf(ERROR_CREATING_REPORT_FILE, path)
-				sc.ErrorOrigin = OriginLagoonInstaller
+				DescriptorFail(&sc, fmt.Errorf(ERROR_CREATING_REPORT_FILE, path), "")
 			}
 
 			if vErrs.HasErrors() {
 				// in case of validation error we stop
-				sc.Error = fmt.Errorf(ERROR_PARSING_DESCRIPTOR, ve.Error())
-				sc.ErrorOrigin = OriginLagoonInstaller
+				DescriptorFail(&sc, fmt.Errorf(ERROR_PARSING_DESCRIPTOR, ve.Error()), "")
 			}
 		}
 	} else {
@@ -622,13 +544,11 @@ func ffailOnLagoonError(c *InstallerContext) stepContexts {
 			if vErrs.HasErrors() {
 				// in case of validation error we stop
 				c.log.Println(c.lagoonError)
-				sc.Error = fmt.Errorf(ERROR_PARSING_DESCRIPTOR, c.lagoonError.Error())
-				sc.ErrorOrigin = OriginEnvironmentDescriptor
+				DescriptorFail(&sc, fmt.Errorf(ERROR_PARSING_DESCRIPTOR, c.lagoonError.Error()), "")
 				goto MoveOut
 			}
 		} else {
-			sc.Error = fmt.Errorf(ERROR_PARSING_ENVIRONMENT, c.lagoonError.Error())
-			sc.ErrorOrigin = OriginEnvironmentDescriptor
+			DescriptorFail(&sc, fmt.Errorf(ERROR_PARSING_DESCRIPTOR, c.lagoonError.Error()), "")
 			goto MoveOut
 		}
 	}

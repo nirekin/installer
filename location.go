@@ -14,14 +14,12 @@ func flocation(c *InstallerContext) stepContexts {
 	sc := InitStepContext("Reading the descriptor location", nil, noCleanUpRequired)
 	c.location = os.Getenv(engine.StarterEnvVariableKey)
 	if c.location == "" {
-		sc.Error = fmt.Errorf(ERROR_REQUIRED_ENV, engine.StarterEnvVariableKey)
-		sc.ErrorOrigin = OriginLagoonInstaller
+		InstallerFail(&sc, fmt.Errorf(ERROR_REQUIRED_ENV, engine.StarterEnvVariableKey), "")
 		goto MoveOut
 	}
 	c.name = os.Getenv(engine.StarterEnvNameVariableKey)
 	if c.name == "" {
-		sc.Error = fmt.Errorf(ERROR_REQUIRED_ENV, engine.StarterEnvNameVariableKey)
-		sc.ErrorOrigin = OriginLagoonInstaller
+		InstallerFail(&sc, fmt.Errorf(ERROR_REQUIRED_ENV, engine.StarterEnvNameVariableKey), "")
 		goto MoveOut
 	}
 MoveOut:

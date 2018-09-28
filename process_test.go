@@ -112,7 +112,6 @@ func TestLaunchStepsMultiples(t *testing.T) {
 	assert.Equal(t, scs[3].StepName, "Dummy step, multiple 1")
 	assert.Equal(t, scs[4].StepName, "Dummy step, multiple 2")
 	assert.Equal(t, scs[5].StepName, "Dummy step, multiple 3")
-
 }
 
 func fStepMock1(c *InstallerContext) stepContexts {

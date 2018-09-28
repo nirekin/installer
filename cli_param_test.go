@@ -14,6 +14,7 @@ func TestReadingParam(t *testing.T) {
 	ef, e := engine.CreateExchangeFolder("./", "testFolfer")
 	assert.Nil(t, e)
 	assert.NotNil(t, ef)
+	defer ef.Delete()
 
 	e = ef.Create()
 	assert.Nil(t, e)
@@ -22,8 +23,6 @@ func TestReadingParam(t *testing.T) {
 
 	e = ef.Location.Write([]byte(pContent), engine.CliParametersFileName)
 	assert.Nil(t, e)
-
-	defer ef.Delete()
 
 	c := &InstallerContext{
 		ef:  ef,

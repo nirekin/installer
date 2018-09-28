@@ -12,8 +12,7 @@ func fcliparam(c *InstallerContext) stepContexts {
 	if ok {
 		p, e := engine.ParseParams(engine.JoinPaths(c.ef.Location.Path(), engine.CliParametersFileName))
 		if e != nil {
-			sc.Error = fmt.Errorf(ERROR_LOADING_CLI_PARAMETERS, e)
-			sc.ErrorOrigin = OriginLagoonInstaller
+			InstallerFail(&sc, fmt.Errorf(ERROR_LOADING_CLI_PARAMETERS, e), "")
 			goto MoveOut
 		}
 		c.cliparams = p

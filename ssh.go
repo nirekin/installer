@@ -31,23 +31,17 @@ func fSHKeys(c *InstallerContext) stepContexts {
 	if generate {
 		publicKey, privateKey, e := ssh.Generate()
 		if e != nil {
-			sc.Error = fmt.Errorf(ERROR_GENERATING_SSH_KEYS, e.Error())
-			sc.ErrorOrigin = OriginLagoonInstaller
-			sc.ErrorDetail = "An error occured generating the keys :v"
+			InstallerFail(&sc, fmt.Errorf(ERROR_GENERATING_SSH_KEYS, e.Error()), "An error occured generating the keys :v")
 			goto MoveOut
 		}
 		_, e = engine.SaveFile(c.log, *c.ef.Input, engine.SSHPuplicKeyFileName, publicKey)
 		if e != nil {
-			sc.Error = e
-			sc.ErrorOrigin = OriginLagoonInstaller
-			sc.ErrorDetail = fmt.Sprintf("An error occured saving the public key into :%v", c.ef.Input.Path())
+			InstallerFail(&sc, e, fmt.Sprintf("An error occured saving the public key into :%v", c.ef.Input.Path()))
 			goto MoveOut
 		}
 		_, e = engine.SaveFile(c.log, *c.ef.Input, engine.SSHPrivateKeyFileName, privateKey)
 		if e != nil {
-			sc.Error = e
-			sc.ErrorOrigin = OriginLagoonInstaller
-			sc.ErrorDetail = fmt.Sprintf("An error occured saving the private key into :%v", c.ef.Input.Path())
+			InstallerFail(&sc, e, fmt.Sprintf("An error occured saving the private key into :%v", c.ef.Input.Path()))
 			goto MoveOut
 		}
 		c.sshPublicKey = filepath.Join(c.ef.Input.Path(), engine.SSHPuplicKeyFileName)

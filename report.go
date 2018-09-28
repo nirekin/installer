@@ -33,3 +33,15 @@ func (er ExecutionReport) Generate() (string, error) {
 	}
 	return engine.SaveFile(er.Context.log, *er.Context.ef.Output, REPORT_OUTPUT_FILE, b)
 }
+
+func writeReport(rep ExecutionReport) error {
+	loc, e := rep.Generate()
+	if e != nil {
+		return e
+	}
+	rep.Context.log.Printf(LOG_REPORT_WRITTEN, loc)
+	if rep.Error != nil {
+		return rep.Error
+	}
+	return nil
+}

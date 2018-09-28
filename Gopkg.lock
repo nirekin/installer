@@ -46,7 +46,7 @@
     "ansible",
     "ssh"
   ]
-  revision = "1920a65daaec2d9e574d0367cf2111de9d51772e"
+  revision = "db08cb3aae329ae9a0ada6319d9534f362cf2f7d"
 
 [[projects]]
   branch = "master"

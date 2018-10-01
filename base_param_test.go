@@ -42,5 +42,4 @@ func TestSaveBaseParamOk(t *testing.T) {
 	ok, _, err := ef.Input.ContainsParamYaml()
 	assert.True(t, ok)
 	assert.Nil(t, err)
-
 }

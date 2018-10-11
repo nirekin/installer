@@ -6,15 +6,16 @@ import (
 	"testing"
 
 	"github.com/lagoon-platform/engine"
+	"github.com/lagoon-platform/engine/util"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNoLocation(t *testing.T) {
 	c := &InstallerContext{}
 	c.log = log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
-	os.Setenv(engine.ActionEnvVariableKey, engine.ActionCreate.String())
-	os.Unsetenv(engine.StarterEnvVariableKey)
-	os.Setenv(engine.StarterEnvNameVariableKey, "test_name")
+	os.Setenv(util.ActionEnvVariableKey, engine.ActionCreate.String())
+	os.Unsetenv(util.StarterEnvVariableKey)
+	os.Setenv(util.StarterEnvNameVariableKey, "test_name")
 	sc := flocation(c)
 	e := sc.Contexts[0].Error
 	assert.NotNil(t, e)
@@ -24,9 +25,9 @@ func TestNoLocation(t *testing.T) {
 func TestNoName(t *testing.T) {
 	c := &InstallerContext{}
 	c.log = log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
-	os.Setenv(engine.ActionEnvVariableKey, engine.ActionCreate.String())
-	os.Unsetenv(engine.StarterEnvNameVariableKey)
-	os.Setenv(engine.StarterEnvVariableKey, "test_location")
+	os.Setenv(util.ActionEnvVariableKey, engine.ActionCreate.String())
+	os.Unsetenv(util.StarterEnvNameVariableKey)
+	os.Setenv(util.StarterEnvVariableKey, "test_location")
 	sc := flocation(c)
 	e := sc.Contexts[0].Error
 	assert.NotNil(t, e)
@@ -36,9 +37,9 @@ func TestNoName(t *testing.T) {
 func TestLocation(t *testing.T) {
 	c := &InstallerContext{}
 	c.log = log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
-	os.Setenv(engine.ActionEnvVariableKey, engine.ActionCreate.String())
-	os.Setenv(engine.StarterEnvVariableKey, "test_location")
-	os.Setenv(engine.StarterEnvNameVariableKey, "test_name")
+	os.Setenv(util.ActionEnvVariableKey, engine.ActionCreate.String())
+	os.Setenv(util.StarterEnvVariableKey, "test_location")
+	os.Setenv(util.StarterEnvNameVariableKey, "test_name")
 	sc := flocation(c)
 	e := sc.Contexts[0].Error
 	assert.Nil(t, e)

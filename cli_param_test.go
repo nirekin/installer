@@ -5,13 +5,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/lagoon-platform/engine"
+	"github.com/lagoon-platform/engine/util"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestReadingParam(t *testing.T) {
 
-	ef, e := engine.CreateExchangeFolder("./", "testFolfer")
+	ef, e := util.CreateExchangeFolder("./", "testFolfer")
 	assert.Nil(t, e)
 	assert.NotNil(t, ef)
 	defer ef.Delete()
@@ -21,7 +21,7 @@ func TestReadingParam(t *testing.T) {
 
 	pContent := `key1: value1`
 
-	e = ef.Location.Write([]byte(pContent), engine.CliParametersFileName)
+	e = ef.Location.Write([]byte(pContent), util.CliParametersFileName)
 	assert.Nil(t, e)
 
 	c := &InstallerContext{

@@ -6,16 +6,17 @@ import (
 	"testing"
 
 	"github.com/lagoon-platform/engine"
+	"github.com/lagoon-platform/engine/util"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNoProxy(t *testing.T) {
 	c := &InstallerContext{}
 	c.log = log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
-	os.Setenv(engine.ActionEnvVariableKey, engine.ActionCreate.String())
-	os.Unsetenv(engine.HttpProxyEnvVariableKey)
-	os.Unsetenv(engine.HttpsProxyEnvVariableKey)
-	os.Unsetenv(engine.NoProxyEnvVariableKey)
+	os.Setenv(util.ActionEnvVariableKey, engine.ActionCreate.String())
+	os.Unsetenv(util.HttpProxyEnvVariableKey)
+	os.Unsetenv(util.HttpsProxyEnvVariableKey)
+	os.Unsetenv(util.NoProxyEnvVariableKey)
 
 	sc := fproxy(c)
 	e := sc.Contexts[0].Error
@@ -28,10 +29,10 @@ func TestNoProxy(t *testing.T) {
 func TestProxy(t *testing.T) {
 	c := &InstallerContext{}
 	c.log = log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
-	os.Setenv(engine.ActionEnvVariableKey, engine.ActionCreate.String())
-	os.Setenv(engine.HttpProxyEnvVariableKey, "http_value")
-	os.Setenv(engine.HttpsProxyEnvVariableKey, "https_value")
-	os.Setenv(engine.NoProxyEnvVariableKey, "no_value")
+	os.Setenv(util.ActionEnvVariableKey, engine.ActionCreate.String())
+	os.Setenv(util.HttpProxyEnvVariableKey, "http_value")
+	os.Setenv(util.HttpsProxyEnvVariableKey, "https_value")
+	os.Setenv(util.NoProxyEnvVariableKey, "no_value")
 	sc := fproxy(c)
 	e := sc.Contexts[0].Error
 	assert.Nil(t, e)

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/lagoon-platform/engine"
+	"github.com/lagoon-platform/engine/util"
 )
 
 // flocation extracts the descriptor location and descriptor  file name from the
@@ -12,14 +12,14 @@ import (
 // engine.StarterEnvNameVariableKey
 func flocation(c *InstallerContext) stepContexts {
 	sc := InitStepContext("Reading the descriptor location", nil, noCleanUpRequired)
-	c.location = os.Getenv(engine.StarterEnvVariableKey)
+	c.location = os.Getenv(util.StarterEnvVariableKey)
 	if c.location == "" {
-		InstallerFail(&sc, fmt.Errorf(ERROR_REQUIRED_ENV, engine.StarterEnvVariableKey), "")
+		InstallerFail(&sc, fmt.Errorf(ERROR_REQUIRED_ENV, util.StarterEnvVariableKey), "")
 		goto MoveOut
 	}
-	c.name = os.Getenv(engine.StarterEnvNameVariableKey)
+	c.name = os.Getenv(util.StarterEnvNameVariableKey)
 	if c.name == "" {
-		InstallerFail(&sc, fmt.Errorf(ERROR_REQUIRED_ENV, engine.StarterEnvNameVariableKey), "")
+		InstallerFail(&sc, fmt.Errorf(ERROR_REQUIRED_ENV, util.StarterEnvNameVariableKey), "")
 		goto MoveOut
 	}
 MoveOut:

@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/lagoon-platform/engine"
 	"github.com/lagoon-platform/engine/ssh"
+	"github.com/lagoon-platform/engine/util"
 )
 
 // fSHKeys checks if the SSH keys are specified via environment variables.
@@ -18,9 +18,9 @@ import (
 func fSHKeys(c *InstallerContext) stepContexts {
 	sc := InitStepContext("Generation the SSH keys", nil, noCleanUpRequired)
 	var generate bool
-	if c.ef.Input.Contains(engine.SSHPuplicKeyFileName) && c.ef.Input.Contains(engine.SSHPrivateKeyFileName) {
-		c.sshPublicKey = filepath.Join(c.ef.Input.Path(), engine.SSHPuplicKeyFileName)
-		c.sshPrivateKey = filepath.Join(c.ef.Input.Path(), engine.SSHPrivateKeyFileName)
+	if c.ef.Input.Contains(util.SSHPuplicKeyFileName) && c.ef.Input.Contains(util.SSHPrivateKeyFileName) {
+		c.sshPublicKey = filepath.Join(c.ef.Input.Path(), util.SSHPuplicKeyFileName)
+		c.sshPrivateKey = filepath.Join(c.ef.Input.Path(), util.SSHPrivateKeyFileName)
 		generate = false
 		c.log.Println("SSHKeys not generation required")
 	} else {
@@ -34,18 +34,18 @@ func fSHKeys(c *InstallerContext) stepContexts {
 			InstallerFail(&sc, fmt.Errorf(ERROR_GENERATING_SSH_KEYS, e.Error()), "An error occured generating the keys :v")
 			goto MoveOut
 		}
-		_, e = engine.SaveFile(c.log, *c.ef.Input, engine.SSHPuplicKeyFileName, publicKey)
+		_, e = util.SaveFile(c.log, *c.ef.Input, util.SSHPuplicKeyFileName, publicKey)
 		if e != nil {
 			InstallerFail(&sc, e, fmt.Sprintf("An error occured saving the public key into :%v", c.ef.Input.Path()))
 			goto MoveOut
 		}
-		_, e = engine.SaveFile(c.log, *c.ef.Input, engine.SSHPrivateKeyFileName, privateKey)
+		_, e = util.SaveFile(c.log, *c.ef.Input, util.SSHPrivateKeyFileName, privateKey)
 		if e != nil {
 			InstallerFail(&sc, e, fmt.Sprintf("An error occured saving the private key into :%v", c.ef.Input.Path()))
 			goto MoveOut
 		}
-		c.sshPublicKey = filepath.Join(c.ef.Input.Path(), engine.SSHPuplicKeyFileName)
-		c.sshPrivateKey = filepath.Join(c.ef.Input.Path(), engine.SSHPrivateKeyFileName)
+		c.sshPublicKey = filepath.Join(c.ef.Input.Path(), util.SSHPuplicKeyFileName)
+		c.sshPrivateKey = filepath.Join(c.ef.Input.Path(), util.SSHPrivateKeyFileName)
 
 	MoveOut:
 		// If the keys have been generated then they should be cleaned in case

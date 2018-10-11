@@ -3,13 +3,13 @@ package installer
 import (
 	"fmt"
 
-	"github.com/lagoon-platform/engine"
+	"github.com/lagoon-platform/engine/util"
 )
 
 func fexchangeFoldef(c *InstallerContext) stepContexts {
 	sc := InitStepContext("Creating the root of the exchange folder", nil, noCleanUpRequired)
 	var err error
-	c.ef, err = engine.CreateExchangeFolder(engine.InstallerVolume, "")
+	c.ef, err = util.CreateExchangeFolder(util.InstallerVolume, "")
 	if err != nil {
 		InstallerFail(&sc, fmt.Errorf(ERROR_CREATING_EXCHANGE_FOLDER, "lagoon_installer", err.Error()), "")
 	}

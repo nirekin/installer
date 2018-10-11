@@ -37,9 +37,11 @@ func (c simpleErrorOrigin) Localize() string {
 }
 
 type playBookErrorOrigin struct {
-	Playbook  string
-	Compoment string
-	Code      int
+	Playbook    string
+	Compoment   string
+	Code        int
+	Context     string
+	ContextName string
 }
 
 func (p playBookErrorOrigin) Localize() string {

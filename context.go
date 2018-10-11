@@ -4,6 +4,8 @@ import (
 	"log"
 
 	"github.com/lagoon-platform/engine"
+	"github.com/lagoon-platform/engine/ansible"
+	"github.com/lagoon-platform/engine/util"
 )
 
 type InstallerContext struct {
@@ -17,17 +19,17 @@ type InstallerContext struct {
 	httpsProxy    string
 	noProxy       string
 	log           *log.Logger
-	lagoon        engine.Lagoon
+	lagoon        engine.Engine
 	lagoonError   error
-	ef            *engine.ExchangeFolder
+	ef            *util.ExchangeFolder
 	session       *engine.EngineSession
-	buffer        map[string]engine.Buffer
-	cliparams     engine.ParamContent
+	buffer        map[string]ansible.Buffer
+	cliparams     ansible.ParamContent
 }
 
 func CreateContext(l *log.Logger) *InstallerContext {
 	c := &InstallerContext{}
-	c.buffer = make(map[string]engine.Buffer)
+	c.buffer = make(map[string]ansible.Buffer)
 	c.log = l
 	return c
 }
@@ -44,14 +46,14 @@ func (c *InstallerContext) LogFatal(v ...interface{}) {
 	c.log.Fatal(v)
 }
 
-func (c *InstallerContext) getBuffer(p *engine.FolderPath) engine.Buffer {
+func (c *InstallerContext) getBuffer(p *util.FolderPath) ansible.Buffer {
 	// We check if we have a buffer corresponding to the provided folder path
 	if val, ok := c.buffer[p.Path()]; ok {
 		return val
 	}
-	return engine.CreateBuffer()
+	return ansible.CreateBuffer()
 }
 
-func (c *InstallerContext) BuildBaseParam(nodeSetId string, provider string) engine.BaseParam {
-	return engine.BuildBaseParam(c.lagoon.Environment().QualifiedName(), nodeSetId, provider, c.sshPublicKey, c.sshPrivateKey)
+func (c *InstallerContext) BuildBaseParam(nodeSetId string, provider string) ansible.BaseParam {
+	return ansible.BuildBaseParam(c.lagoon.Environment().QualifiedName(), nodeSetId, provider, c.sshPublicKey, c.sshPrivateKey)
 }

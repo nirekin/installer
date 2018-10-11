@@ -5,13 +5,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/lagoon-platform/engine"
+	"github.com/lagoon-platform/engine/util"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestChildExchangeFolderOk(t *testing.T) {
 
-	ef, e := engine.CreateExchangeFolder("./", "testFolder")
+	ef, e := util.CreateExchangeFolder("./", "testFolder")
 	assert.Nil(t, e)
 	assert.NotNil(t, ef)
 	defer ef.Delete()
@@ -35,7 +35,7 @@ func TestChildExchangeFolderOk(t *testing.T) {
 
 func TestChildExchangeFolderKo(t *testing.T) {
 
-	ef, e := engine.CreateExchangeFolder("./", "testFolder")
+	ef, e := util.CreateExchangeFolder("./", "testFolder")
 	assert.Nil(t, e)
 	assert.NotNil(t, ef)
 	defer ef.Delete()

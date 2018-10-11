@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/lagoon-platform/engine"
+	"github.com/lagoon-platform/engine/util"
 )
 
-func createChildExchangeFolder(parent *engine.FolderPath, name string, sc *stepContext, log *log.Logger) (*engine.ExchangeFolder, bool) {
+func createChildExchangeFolder(parent *util.FolderPath, name string, sc *stepContext, log *log.Logger) (*util.ExchangeFolder, bool) {
 	ef, e := parent.AddChildExchangeFolder(name)
 	if e != nil {
 		err := fmt.Errorf(ERROR_ADDING_EXCHANGE_FOLDER, name, e.Error())

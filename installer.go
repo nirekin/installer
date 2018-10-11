@@ -7,6 +7,7 @@ import (
 
 	"github.com/lagoon-platform/engine"
 	"github.com/lagoon-platform/engine/ansible"
+	"github.com/lagoon-platform/engine/util"
 	"github.com/lagoon-platform/model"
 )
 
@@ -18,7 +19,7 @@ type NodeExtraVars struct {
 func Run(c *InstallerContext) (e error) {
 	// Check if the received action is supporter by the engine
 	c.log.Println(LOG_RUNNING)
-	a := os.Getenv(engine.ActionEnvVariableKey)
+	a := os.Getenv(util.ActionEnvVariableKey)
 	switch a {
 	case engine.ActionCreate.String():
 		c.log.Println(LOG_ACTION_CREATE)
@@ -100,7 +101,7 @@ func fsession(c *InstallerContext) stepContexts {
 		goto MoveOut
 	}
 	{
-		f, e := engine.SaveFile(c.log, *c.ef.Location, engine.CreationSessionFileName, by)
+		f, e := util.SaveFile(c.log, *c.ef.Location, util.CreationSessionFileName, by)
 		if e != nil {
 			InstallerFail(&sc, e, fmt.Sprintf("An error occured saving the session file into :%v", c.ef.Location.Path()))
 			goto MoveOut
@@ -140,7 +141,7 @@ func fsetup(c *InstallerContext) stepContexts {
 		}
 
 		// This is the first "real" step of the process so the used buffer is empty
-		emptyBuff := engine.CreateBuffer()
+		emptyBuff := ansible.CreateBuffer()
 
 		// Prepare components map
 		if ko := saveComponentMap(c, setupProviderEfIn, &sc); ko {
@@ -149,10 +150,10 @@ func fsetup(c *InstallerContext) stepContexts {
 		}
 
 		// Prepare extra vars
-		exv := engine.BuildExtraVars("", *setupProviderEfIn, *setupProviderEfOut, emptyBuff)
+		exv := ansible.BuildExtraVars("", *setupProviderEfIn, *setupProviderEfOut, emptyBuff)
 
 		// Prepare environment variables
-		env := engine.BuildEnvVars()
+		env := ansible.BuildEnvVars()
 		env.Add("http_proxy", c.httpProxy)
 		env.Add("https_proxy", c.httpsProxy)
 
@@ -162,7 +163,7 @@ func fsetup(c *InstallerContext) stepContexts {
 		}
 
 		// We launch the playbook
-		err, code := ansible.LaunchPlayBook(c.lagoon.ComponentManager(), p.Component.Resolve(), "setup.yml", exv, env, "", *c.log)
+		err, code := c.lagoon.AnsibleManager().Execute(p.Component.Resolve(), "setup.yml", exv, env, "")
 		if err != nil {
 			pEo := playBookErrorOrigin{
 				Playbook:  "setup.yml",
@@ -186,7 +187,7 @@ func fconsumesetup(c *InstallerContext) stepContexts {
 		sc := InitStepContext("Consuming the setup phase", p, noCleanUpRequired)
 		c.log.Printf("Consume setup for provider %s", p.Name)
 		setupProviderEfOut := c.ef.Input.Children["setup_provider_"+p.Name].Output
-		err, buffer := engine.GetBuffer(setupProviderEfOut, c.log, "provider:"+p.Name)
+		err, buffer := ansible.GetBuffer(setupProviderEfOut, c.log, "provider:"+p.Name)
 		if err != nil {
 			InstallerFail(&sc, err, fmt.Sprintf("An error occured getting the buffer"))
 			sCs.Add(sc)
@@ -240,13 +241,13 @@ func fcreate(c *InstallerContext) stepContexts {
 		}
 
 		// Prepare environment variables
-		env := engine.BuildEnvVars()
+		env := ansible.BuildEnvVars()
 		env.Add("http_proxy", c.httpProxy)
 		env.Add("https_proxy", c.httpsProxy)
 		env.AddBuffer(buffer)
 
 		// Prepare extra vars
-		ev := engine.BuildExtraVars("", *nodeCreateEf.Input, *nodeCreateEf.Output, buffer)
+		exv := ansible.BuildExtraVars("", *nodeCreateEf.Input, *nodeCreateEf.Output, buffer)
 
 		inventory := ""
 		if len(buffer.Inventories) > 0 {
@@ -254,7 +255,7 @@ func fcreate(c *InstallerContext) stepContexts {
 		}
 
 		// We launch the playbook
-		err, code := ansible.LaunchPlayBook(c.lagoon.ComponentManager(), p.Component.Resolve(), "create.yml", ev, env, inventory, *c.log)
+		err, code := c.lagoon.AnsibleManager().Execute(p.Component.Resolve(), "create.yml", exv, env, inventory)
 		if err != nil {
 			pEo := playBookErrorOrigin{
 				Playbook:  "create.yml",
@@ -278,7 +279,7 @@ func fconsumecreate(c *InstallerContext) stepContexts {
 		sc := InitStepContext("Consuming the create phase", n, noCleanUpRequired)
 		c.log.Printf("Consume create for node %s", n.Name)
 		nodeCreateEf := c.ef.Input.Children["create_"+n.Name].Output
-		err, buffer := engine.GetBuffer(nodeCreateEf, c.log, "node:"+n.Name)
+		err, buffer := ansible.GetBuffer(nodeCreateEf, c.log, "node:"+n.Name)
 		// Keep a reference on the buffer based on the output folder
 		if err != nil {
 			InstallerFail(&sc, err, fmt.Sprintf("An error occured getting the buffer"))
@@ -337,7 +338,7 @@ func fsetuporchestrator(c *InstallerContext) stepContexts {
 		}
 
 		// Prepare environment variables
-		env := engine.BuildEnvVars()
+		env := ansible.BuildEnvVars()
 		env.Add("http_proxy", c.httpProxy)
 		env.Add("https_proxy", c.httpsProxy)
 		env.AddBuffer(buffer)
@@ -346,7 +347,7 @@ func fsetuporchestrator(c *InstallerContext) stepContexts {
 		env.AddBuffer(bufferPro)
 
 		// Prepare extra vars
-		exv := engine.BuildExtraVars("", *setupOrcherstratorEf.Input, *setupOrcherstratorEf.Output, buffer)
+		exv := ansible.BuildExtraVars("", *setupOrcherstratorEf.Input, *setupOrcherstratorEf.Output, buffer)
 
 		inventory := ""
 		if len(bufferPro.Inventories) > 0 {
@@ -354,7 +355,7 @@ func fsetuporchestrator(c *InstallerContext) stepContexts {
 		}
 
 		// We launch the playbook
-		err, code := ansible.LaunchPlayBook(c.lagoon.ComponentManager(), c.lagoon.Environment().Orchestrator.Component.Resolve(), "setup.yml", exv, env, inventory, *c.log)
+		err, code := c.lagoon.AnsibleManager().Execute(c.lagoon.Environment().Orchestrator.Component.Resolve(), "setup.yml", exv, env, inventory)
 		if err != nil {
 			pEo := playBookErrorOrigin{
 				Playbook:  "setup.yml",
@@ -379,7 +380,7 @@ func fconsumesetuporchestrator(c *InstallerContext) stepContexts {
 		sc := InitStepContext("Consuming the orchestrator setup phase", n, noCleanUpRequired)
 		c.log.Printf("Consume orchestrator setup for node %s", n.Name)
 		setupOrcherstratorEf := c.ef.Input.Children["setup_orchestrator_"+n.Name].Output
-		err, buffer := engine.GetBuffer(setupOrcherstratorEf, c.log, "node:"+n.Name)
+		err, buffer := ansible.GetBuffer(setupOrcherstratorEf, c.log, "node:"+n.Name)
 		// Keep a reference on the buffer based on the output folder
 		if err != nil {
 			InstallerFail(&sc, err, fmt.Sprintf("An error occured getting the buffer"))
@@ -438,7 +439,7 @@ func forchestrator(c *InstallerContext) stepContexts {
 		}
 
 		// Prepare environment variables
-		env := engine.BuildEnvVars()
+		env := ansible.BuildEnvVars()
 		env.Add("http_proxy", c.httpProxy)
 		env.Add("https_proxy", c.httpsProxy)
 		env.AddBuffer(buffer)
@@ -447,7 +448,7 @@ func forchestrator(c *InstallerContext) stepContexts {
 		env.AddBuffer(bufferPro)
 
 		// Prepare extra vars
-		exv := engine.BuildExtraVars("", *installOrcherstratorEf.Input, *installOrcherstratorEf.Output, buffer)
+		exv := ansible.BuildExtraVars("", *installOrcherstratorEf.Input, *installOrcherstratorEf.Output, buffer)
 
 		inventory := ""
 		if len(bufferPro.Inventories) > 0 {
@@ -455,7 +456,7 @@ func forchestrator(c *InstallerContext) stepContexts {
 		}
 
 		// We launch the playbook
-		err, code := ansible.LaunchPlayBook(c.lagoon.ComponentManager(), c.lagoon.Environment().Orchestrator.Component.Resolve(), "install.yml", exv, env, inventory, *c.log)
+		err, code := c.lagoon.AnsibleManager().Execute(c.lagoon.Environment().Orchestrator.Component.Resolve(), "install.yml", exv, env, inventory)
 		if err != nil {
 			pEo := playBookErrorOrigin{
 				Playbook:  "install.yml",
@@ -488,7 +489,7 @@ func flogCheck(c *InstallerContext) stepContexts {
 				DescriptorFail(&sc, fmt.Errorf(ERROR_GENERIC, e), "")
 			}
 			// print both errors and warnings into the report file
-			path, err := engine.SaveFile(c.log, *c.ef.Output, VALIDATION_OUTPUT_FILE, b)
+			path, err := util.SaveFile(c.log, *c.ef.Output, VALIDATION_OUTPUT_FILE, b)
 			if err != nil {
 				// in case of error writing the report file
 				DescriptorFail(&sc, fmt.Errorf(ERROR_CREATING_REPORT_FILE, path), "")

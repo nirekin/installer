@@ -3,7 +3,7 @@ package installer
 import (
 	"encoding/json"
 
-	"github.com/lagoon-platform/engine"
+	"github.com/lagoon-platform/engine/util"
 )
 
 type ExecutionReport struct {
@@ -31,7 +31,7 @@ func (er ExecutionReport) Generate() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return engine.SaveFile(er.Context.log, *er.Context.ef.Output, REPORT_OUTPUT_FILE, b)
+	return util.SaveFile(er.Context.log, *er.Context.ef.Output, REPORT_OUTPUT_FILE, b)
 }
 
 func writeReport(rep ExecutionReport) error {

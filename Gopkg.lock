@@ -44,15 +44,17 @@
   packages = [
     ".",
     "ansible",
-    "ssh"
+    "component",
+    "ssh",
+    "util"
   ]
-  revision = "db08cb3aae329ae9a0ada6319d9534f362cf2f7d"
+  revision = "3115c260e824936951ebfb5bd1e8fe91892705d0"
 
 [[projects]]
   branch = "master"
   name = "github.com/lagoon-platform/model"
   packages = ["."]
-  revision = "d0940ab67a86ff7585aa3f824faccc158af85fda"
+  revision = "2d121e53990cddb77d0dba3bb958f88f1e8bfc6a"
 
 [[projects]]
   name = "github.com/mitchellh/go-homedir"
@@ -122,19 +124,19 @@
     "ssh/agent",
     "ssh/knownhosts"
   ]
-  revision = "0e37d006457bf46f9e6692014ba72ef82c33022c"
+  revision = "7c1a557ab941a71c619514f229f0b27ccb0c27cf"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context"]
-  revision = "f04abc6bdfa7a0171a8a0c9fd2ada9391044d056"
+  revision = "146acd28ed5894421fb5aac80ca93bc1b1f46f87"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["windows"]
-  revision = "90868a75fefd03942536221d7c0e2f84ec62a668"
+  revision = "4497e2df6f9e69048a54498c7affbbec3294ad47"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -223,6 +225,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ece2026376e70f02f40dad7c34ef66fd98489f08620324ccdf5e4a25b6684ac6"
+  inputs-digest = "f6b5da2e9661b9be46540ad2b1845aec6a74d3259834eda09622abc95283d2f4"
   solver-name = "gps-cdcl"
   solver-version = 1

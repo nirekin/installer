@@ -3,7 +3,7 @@ package installer
 import (
 	"encoding/json"
 
-	"github.com/lagoon-platform/engine/util"
+	"github.com/ekara-platform/engine/util"
 )
 
 type ExecutionReport struct {

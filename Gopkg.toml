@@ -27,11 +27,11 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/lagoon-platform/engine"
+  name = "github.com/ekara-platform/engine"
 
 [[constraint]]
   branch = "master"
-  name = "github.com/lagoon-platform/model"
+  name = "github.com/ekara-platform/model"
 
 [[constraint]]
   name = "github.com/stretchr/testify"

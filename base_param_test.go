@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/lagoon-platform/engine/util"
-	"github.com/lagoon-platform/model"
+	"github.com/ekara-platform/engine/util"
+	"github.com/ekara-platform/model"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,7 +25,7 @@ func TestSaveBaseParamOk(t *testing.T) {
 		log:           log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds),
 		sshPublicKey:  "sshPublicKey_content",
 		sshPrivateKey: "sshPrivateKey_content",
-		lagoon: LaggonMock{
+		ekara: EkaraMock{
 			Env: model.Environment{
 				Name:      "NameContent",
 				Qualifier: "QualifierContent",

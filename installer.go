@@ -5,10 +5,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/lagoon-platform/engine"
-	"github.com/lagoon-platform/engine/ansible"
-	"github.com/lagoon-platform/engine/util"
-	"github.com/lagoon-platform/model"
+	"github.com/ekara-platform/engine"
+	"github.com/ekara-platform/engine/ansible"
+	"github.com/ekara-platform/engine/util"
+	"github.com/ekara-platform/model"
 )
 
 type NodeExtraVars struct {
@@ -44,7 +44,7 @@ func runCreate(c *InstallerContext) ExecutionReport {
 		fexchangeFoldef,
 		flocation,
 		fcliparam,
-		flagoon,
+		fekara,
 		ffailOnLagoonError,
 		fsession,
 		fSHKeys,
@@ -67,7 +67,7 @@ func runCheck(c *InstallerContext) ExecutionReport {
 		fexchangeFoldef,
 		flocation,
 		fcliparam,
-		flagoon,
+		fekara,
 		flogCheck,
 	}
 	return launch(calls, c)
@@ -80,18 +80,18 @@ func fsession(c *InstallerContext) stepContexts {
 
 	b, s := engine.HasCreationSession(*c.ef)
 	if !b {
-		createSession = &engine.CreationSession{Client: c.lagoon.Environment().QualifiedName().String(), Uids: make(map[string]string)}
+		createSession = &engine.CreationSession{Client: c.ekara.Environment().QualifiedName().String(), Uids: make(map[string]string)}
 	} else {
 		createSession = s.CreationSession
 	}
 
 	// If needed creates the missing Uids for the nodes
-	for _, n := range c.lagoon.Environment().NodeSets {
+	for _, n := range c.ekara.Environment().NodeSets {
 		if val, ok := createSession.Uids[n.Name]; ok {
-			c.log.Printf(LOG_REUSING_UID_FOR_CLIENT, val, c.lagoon.Environment().QualifiedName(), n.Name)
+			c.log.Printf(LOG_REUSING_UID_FOR_CLIENT, val, c.ekara.Environment().QualifiedName(), n.Name)
 		} else {
 			uid := engine.GetUId()
-			c.log.Printf(LOG_CREATING_UID_FOR_CLIENT, uid, c.lagoon.Environment().QualifiedName(), n.Name)
+			c.log.Printf(LOG_CREATING_UID_FOR_CLIENT, uid, c.ekara.Environment().QualifiedName(), n.Name)
 			createSession.Add(n.Name, uid)
 		}
 	}
@@ -117,7 +117,7 @@ MoveOut:
 
 func fsetup(c *InstallerContext) stepContexts {
 	sCs := InitStepContexts()
-	for _, p := range c.lagoon.Environment().Providers {
+	for _, p := range c.ekara.Environment().Providers {
 		sc := InitStepContext("Running the setup phase", p, noCleanUpRequired)
 		c.log.Printf(LOG_RUNNING_SETUP_FOR, p.Name)
 
@@ -163,7 +163,7 @@ func fsetup(c *InstallerContext) stepContexts {
 		}
 
 		// We launch the playbook
-		err, code := c.lagoon.AnsibleManager().Execute(p.Component.Resolve(), "setup.yml", exv, env, "")
+		err, code := c.ekara.AnsibleManager().Execute(p.Component.Resolve(), "setup.yml", exv, env, "")
 		if err != nil {
 			pEo := playBookErrorOrigin{
 				Playbook:  "setup.yml",
@@ -183,7 +183,7 @@ func fsetup(c *InstallerContext) stepContexts {
 
 func fconsumesetup(c *InstallerContext) stepContexts {
 	sCs := InitStepContexts()
-	for _, p := range c.lagoon.Environment().Providers {
+	for _, p := range c.ekara.Environment().Providers {
 		sc := InitStepContext("Consuming the setup phase", p, noCleanUpRequired)
 		c.log.Printf("Consume setup for provider %s", p.Name)
 		setupProviderEfOut := c.ef.Input.Children["setup_provider_"+p.Name].Output
@@ -202,7 +202,7 @@ func fconsumesetup(c *InstallerContext) stepContexts {
 
 func fcreate(c *InstallerContext) stepContexts {
 	sCs := InitStepContexts()
-	for _, n := range c.lagoon.Environment().NodeSets {
+	for _, n := range c.ekara.Environment().NodeSets {
 		sc := InitStepContext("Running the create phase", n, noCleanUpRequired)
 		c.log.Printf(LOG_PROCESSING_NODE, n.Name)
 		// unique id of the nodeset
@@ -255,7 +255,7 @@ func fcreate(c *InstallerContext) stepContexts {
 		}
 
 		// We launch the playbook
-		err, code := c.lagoon.AnsibleManager().Execute(p.Component.Resolve(), "create.yml", exv, env, inventory)
+		err, code := c.ekara.AnsibleManager().Execute(p.Component.Resolve(), "create.yml", exv, env, inventory)
 		if err != nil {
 			pEo := playBookErrorOrigin{
 				Playbook:  "create.yml",
@@ -275,7 +275,7 @@ func fcreate(c *InstallerContext) stepContexts {
 
 func fconsumecreate(c *InstallerContext) stepContexts {
 	sCs := InitStepContexts()
-	for _, n := range c.lagoon.Environment().NodeSets {
+	for _, n := range c.ekara.Environment().NodeSets {
 		sc := InitStepContext("Consuming the create phase", n, noCleanUpRequired)
 		c.log.Printf("Consume create for node %s", n.Name)
 		nodeCreateEf := c.ef.Input.Children["create_"+n.Name].Output
@@ -294,7 +294,7 @@ func fconsumecreate(c *InstallerContext) stepContexts {
 
 func fsetuporchestrator(c *InstallerContext) stepContexts {
 	sCs := InitStepContexts()
-	for _, n := range c.lagoon.Environment().NodeSets {
+	for _, n := range c.ekara.Environment().NodeSets {
 		sc := InitStepContext("Running the orchestrator setup phase", n, noCleanUpRequired)
 		c.log.Printf(LOG_PROCESSING_NODE, n.Name)
 		// unique id of the nodeset
@@ -320,7 +320,7 @@ func fsetuporchestrator(c *InstallerContext) stepContexts {
 		}
 
 		// Prepare parameters
-		//bp := engine.BuilBaseParam(c.lagoon.Environment().QualifiedName(), uid, p.Name, c.sshPublicKey, c.sshPrivateKey)
+		//bp := engine.BuilBaseParam(c.ekara.Environment().QualifiedName(), uid, p.Name, c.sshPublicKey, c.sshPrivateKey)
 		bp := c.BuildBaseParam(uid, p.Name)
 		op := n.Orchestrator.OrchestratorParams()
 		bp.AddNamedMap("orchestrator", op)
@@ -355,7 +355,7 @@ func fsetuporchestrator(c *InstallerContext) stepContexts {
 		}
 
 		// We launch the playbook
-		err, code := c.lagoon.AnsibleManager().Execute(c.lagoon.Environment().Orchestrator.Component.Resolve(), "setup.yml", exv, env, inventory)
+		err, code := c.ekara.AnsibleManager().Execute(c.ekara.Environment().Orchestrator.Component.Resolve(), "setup.yml", exv, env, inventory)
 		if err != nil {
 			pEo := playBookErrorOrigin{
 				Playbook:  "setup.yml",
@@ -376,7 +376,7 @@ func fsetuporchestrator(c *InstallerContext) stepContexts {
 
 func fconsumesetuporchestrator(c *InstallerContext) stepContexts {
 	sCs := InitStepContexts()
-	for _, n := range c.lagoon.Environment().NodeSets {
+	for _, n := range c.ekara.Environment().NodeSets {
 		sc := InitStepContext("Consuming the orchestrator setup phase", n, noCleanUpRequired)
 		c.log.Printf("Consume orchestrator setup for node %s", n.Name)
 		setupOrcherstratorEf := c.ef.Input.Children["setup_orchestrator_"+n.Name].Output
@@ -395,7 +395,7 @@ func fconsumesetuporchestrator(c *InstallerContext) stepContexts {
 
 func forchestrator(c *InstallerContext) stepContexts {
 	sCs := InitStepContexts()
-	for _, n := range c.lagoon.Environment().NodeSets {
+	for _, n := range c.ekara.Environment().NodeSets {
 		sc := InitStepContext("Running the orchestrator installation phase", n, noCleanUpRequired)
 		c.log.Printf(LOG_PROCESSING_NODE, n.Name)
 		uid := c.session.CreationSession.Uids[n.Name]
@@ -423,7 +423,7 @@ func forchestrator(c *InstallerContext) stepContexts {
 		bp.AddNamedMap("orchestrator", n.Orchestrator.OrchestratorParams())
 
 		// TODO removed this hardcoded AWS
-		pr := c.lagoon.Environment().Providers["aws"].Proxy
+		pr := c.ekara.Environment().Providers["aws"].Proxy
 		bp.AddInterface("proxy", pr)
 		bp.AddBuffer(buffer)
 
@@ -456,7 +456,7 @@ func forchestrator(c *InstallerContext) stepContexts {
 		}
 
 		// We launch the playbook
-		err, code := c.lagoon.AnsibleManager().Execute(c.lagoon.Environment().Orchestrator.Component.Resolve(), "install.yml", exv, env, inventory)
+		err, code := c.ekara.AnsibleManager().Execute(c.ekara.Environment().Orchestrator.Component.Resolve(), "install.yml", exv, env, inventory)
 		if err != nil {
 			pEo := playBookErrorOrigin{
 				Playbook:  "install.yml",
@@ -476,7 +476,7 @@ func forchestrator(c *InstallerContext) stepContexts {
 
 func flogCheck(c *InstallerContext) stepContexts {
 	sc := InitStepContext("Validating the environment content", nil, noCleanUpRequired)
-	ve := c.lagoonError
+	ve := c.ekaraError
 	if ve != nil {
 		vErrs, ok := ve.(model.ValidationErrors)
 		// if the error is not a "validation error" then we return it
@@ -506,21 +506,21 @@ func flogCheck(c *InstallerContext) stepContexts {
 	return sc.Array()
 }
 
-func flagoon(c *InstallerContext) stepContexts {
+func fekara(c *InstallerContext) stepContexts {
 	sc := InitStepContext("Creating the environment based on the descriptor", nil, noCleanUpRequired)
 	root, flavor := repositoryFlavor(c.location)
 	if c.cliparams != nil {
-		c.log.Printf("Creating lagoon environment with parameter for templating")
-		c.lagoon, c.lagoonError = engine.Create(c.log, "/var/lib/lagoon", c.cliparams)
+		c.log.Printf("Creating ekara environment with parameter for templating")
+		c.ekara, c.ekaraError = engine.Create(c.log, "/var/lib/ekara", c.cliparams)
 	} else {
-		c.log.Printf("Creating lagoon environment without parameter for templating")
-		c.lagoon, c.lagoonError = engine.Create(c.log, "/var/lib/lagoon", map[string]interface{}{})
+		c.log.Printf("Creating ekara environment without parameter for templating")
+		c.ekara, c.ekaraError = engine.Create(c.log, "/var/lib/ekara", map[string]interface{}{})
 	}
 
-	if c.lagoonError == nil {
-		c.lagoonError = c.lagoon.Init(root, flavor)
+	if c.ekaraError == nil {
+		c.ekaraError = c.ekara.Init(root, flavor)
 	}
-	// Note: here we are not taking in account the "c.lagoonError != nil" to place the error
+	// Note: here we are not taking in account the "c.ekaraError != nil" to place the error
 	// into the context because this error managment depends on the whole process
 	// and will be treated if required by the "ffailOnLagoonError" step
 	return sc.Array()
@@ -539,17 +539,17 @@ func repositoryFlavor(url string) (string, string) {
 
 func ffailOnLagoonError(c *InstallerContext) stepContexts {
 	sc := InitStepContext("Stopping the process in case of validation errors", nil, noCleanUpRequired)
-	if c.lagoonError != nil {
-		vErrs, ok := c.lagoonError.(model.ValidationErrors)
+	if c.ekaraError != nil {
+		vErrs, ok := c.ekaraError.(model.ValidationErrors)
 		if ok {
 			if vErrs.HasErrors() {
 				// in case of validation error we stop
-				c.log.Println(c.lagoonError)
-				DescriptorFail(&sc, fmt.Errorf(ERROR_PARSING_DESCRIPTOR, c.lagoonError.Error()), "")
+				c.log.Println(c.ekaraError)
+				DescriptorFail(&sc, fmt.Errorf(ERROR_PARSING_DESCRIPTOR, c.ekaraError.Error()), "")
 				goto MoveOut
 			}
 		} else {
-			DescriptorFail(&sc, fmt.Errorf(ERROR_PARSING_DESCRIPTOR, c.lagoonError.Error()), "")
+			DescriptorFail(&sc, fmt.Errorf(ERROR_PARSING_DESCRIPTOR, c.ekaraError.Error()), "")
 			goto MoveOut
 		}
 	}

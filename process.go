@@ -3,7 +3,7 @@ package installer
 import (
 	"encoding/json"
 
-	"github.com/lagoon-platform/model"
+	"github.com/ekara-platform/model"
 )
 
 // stepContexts represents a chain of steps execution results

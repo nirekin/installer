@@ -3,8 +3,8 @@ package installer
 import (
 	"fmt"
 
-	"github.com/lagoon-platform/engine/ansible"
-	"github.com/lagoon-platform/engine/util"
+	"github.com/ekara-platform/engine/ansible"
+	"github.com/ekara-platform/engine/util"
 )
 
 func saveBaseParams(bp ansible.BaseParam, c *InstallerContext, dest *util.FolderPath, sc *stepContext) bool {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/lagoon-platform/engine/util"
+	"github.com/ekara-platform/engine/util"
 )
 
 // flocation extracts the descriptor location and descriptor  file name from the

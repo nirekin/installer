@@ -1,6 +1,6 @@
 
-Go package containing the **lagoon installer** sources.
+Go package containing the **Ekara installer** sources.
 
-Godoc here : https://godoc.org/github.com/lagoon-platform/installer
+Godoc here : https://godoc.org/github.com/ekara-platform/installer
 
 

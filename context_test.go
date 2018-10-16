@@ -3,7 +3,7 @@ package installer
 import (
 	"testing"
 
-	"github.com/lagoon-platform/model"
+	"github.com/ekara-platform/model"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -11,7 +11,7 @@ func TestBaseParamFromContext(t *testing.T) {
 	c := InstallerContext{
 		sshPublicKey:  "sshPublicKey_content",
 		sshPrivateKey: "sshPrivateKey_content",
-		lagoon: LaggonMock{
+		ekara: EkaraMock{
 			Env: model.Environment{
 				Name:      "NameContent",
 				Qualifier: "QualifierContent",
@@ -42,7 +42,7 @@ func TestBaseParamFromContext(t *testing.T) {
 
 func TestBaseAlmostEmptyParamFromContext(t *testing.T) {
 	c := InstallerContext{
-		lagoon: LaggonMock{
+		ekara: EkaraMock{
 			Env: model.Environment{},
 		},
 	}
@@ -68,7 +68,7 @@ func TestBaseAlmostEmptyParamFromContext(t *testing.T) {
 
 func TestBaseEmptyParamFromContext(t *testing.T) {
 	c := InstallerContext{
-		lagoon: LaggonMock{
+		ekara: EkaraMock{
 			Env: model.Environment{},
 		},
 	}

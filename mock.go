@@ -3,37 +3,37 @@ package installer
 import (
 	"log"
 
-	"github.com/lagoon-platform/engine/ansible"
-	"github.com/lagoon-platform/engine/component"
-	"github.com/lagoon-platform/engine/util"
-	"github.com/lagoon-platform/model"
+	"github.com/ekara-platform/engine/ansible"
+	"github.com/ekara-platform/engine/component"
+	"github.com/ekara-platform/engine/util"
+	"github.com/ekara-platform/model"
 )
 
-type LaggonMock struct {
+type EkaraMock struct {
 	// TODO This mock should be deleted once the logic content of the installer has been
 	// refactored and moved into the engine
 	Env model.Environment
 }
 
-func (d LaggonMock) Init(repo string, ref string) error {
+func (d EkaraMock) Init(repo string, ref string) error {
 	return nil
 }
-func (d LaggonMock) Environment() model.Environment {
+func (d EkaraMock) Environment() model.Environment {
 	return d.Env
 }
-func (d LaggonMock) ComponentManager() component.ComponentManager {
+func (d EkaraMock) ComponentManager() component.ComponentManager {
 	return CMMock{}
 }
 
-func (d LaggonMock) AnsibleManager() ansible.AnsibleManager {
+func (d EkaraMock) AnsibleManager() ansible.AnsibleManager {
 	return AMMock{}
 }
 
-func (d LaggonMock) Logger() *log.Logger {
+func (d EkaraMock) Logger() *log.Logger {
 	return nil
 }
 
-func (d LaggonMock) BaseDir() string {
+func (d EkaraMock) BaseDir() string {
 	return ""
 }
 

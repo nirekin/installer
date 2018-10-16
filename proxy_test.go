@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/lagoon-platform/engine"
-	"github.com/lagoon-platform/engine/util"
+	"github.com/ekara-platform/engine"
+	"github.com/ekara-platform/engine/util"
 	"github.com/stretchr/testify/assert"
 )
 

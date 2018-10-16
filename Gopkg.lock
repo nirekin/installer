@@ -8,6 +8,24 @@
   version = "v1.1.1"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/ekara-platform/engine"
+  packages = [
+    ".",
+    "ansible",
+    "component",
+    "ssh",
+    "util"
+  ]
+  revision = "3bf8be3e4818f915a30658323d1a80598143bfb9"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/ekara-platform/model"
+  packages = ["."]
+  revision = "323d1cd9479c5e7967cbd12160f99a0701c4508f"
+
+[[projects]]
   name = "github.com/emirpasic/gods"
   packages = [
     "containers",
@@ -37,24 +55,6 @@
   packages = ["."]
   revision = "81db2a75821ed34e682567d48be488a1c3121088"
   version = "0.5"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/lagoon-platform/engine"
-  packages = [
-    ".",
-    "ansible",
-    "component",
-    "ssh",
-    "util"
-  ]
-  revision = "3115c260e824936951ebfb5bd1e8fe91892705d0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/lagoon-platform/model"
-  packages = ["."]
-  revision = "2d121e53990cddb77d0dba3bb958f88f1e8bfc6a"
 
 [[projects]]
   name = "github.com/mitchellh/go-homedir"
@@ -124,19 +124,19 @@
     "ssh/agent",
     "ssh/knownhosts"
   ]
-  revision = "7c1a557ab941a71c619514f229f0b27ccb0c27cf"
+  revision = "0c41d7ab0a0ee717d4590a44bcb987dfd9e183eb"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context"]
-  revision = "146acd28ed5894421fb5aac80ca93bc1b1f46f87"
+  revision = "49bb7cea24b1df9410e1712aa6433dae904ff66a"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["windows"]
-  revision = "4497e2df6f9e69048a54498c7affbbec3294ad47"
+  revision = "fa43e7bc11baaae89f3f902b2b4d832b68234844"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -225,6 +225,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f6b5da2e9661b9be46540ad2b1845aec6a74d3259834eda09622abc95283d2f4"
+  inputs-digest = "bda03add90ff42c45ee81af2e771d5083f13c2b1b449ac84104468cc2930137d"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/lagoon-platform/engine/util"
+	"github.com/ekara-platform/engine/util"
 )
 
 func createChildExchangeFolder(parent *util.FolderPath, name string, sc *stepContext, log *log.Logger) (*util.ExchangeFolder, bool) {

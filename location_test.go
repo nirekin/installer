@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/lagoon-platform/engine"
-	"github.com/lagoon-platform/engine/util"
+	"github.com/ekara-platform/engine"
+	"github.com/ekara-platform/engine/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,7 +19,7 @@ func TestNoLocation(t *testing.T) {
 	sc := flocation(c)
 	e := sc.Contexts[0].Error
 	assert.NotNil(t, e)
-	assert.Equal(t, e.Error(), "the environment variable \"LAGOON_ENV_DESCR\" should be defined")
+	assert.Equal(t, e.Error(), "the environment variable \"EKARA_ENV_DESCR\" should be defined")
 }
 
 func TestNoName(t *testing.T) {
@@ -31,7 +31,7 @@ func TestNoName(t *testing.T) {
 	sc := flocation(c)
 	e := sc.Contexts[0].Error
 	assert.NotNil(t, e)
-	assert.Equal(t, e.Error(), "the environment variable \"LAGOON_ENV_DESCR_NAME\" should be defined")
+	assert.Equal(t, e.Error(), "the environment variable \"EKARA_ENV_DESCR_NAME\" should be defined")
 }
 
 func TestLocation(t *testing.T) {

@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/lagoon-platform/engine/ssh"
-	"github.com/lagoon-platform/engine/util"
+	"github.com/ekara-platform/engine/ssh"
+	"github.com/ekara-platform/engine/util"
 )
 
 // fSHKeys checks if the SSH keys are specified via environment variables.

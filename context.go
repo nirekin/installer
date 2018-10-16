@@ -3,9 +3,9 @@ package installer
 import (
 	"log"
 
-	"github.com/lagoon-platform/engine"
-	"github.com/lagoon-platform/engine/ansible"
-	"github.com/lagoon-platform/engine/util"
+	"github.com/ekara-platform/engine"
+	"github.com/ekara-platform/engine/ansible"
+	"github.com/ekara-platform/engine/util"
 )
 
 type InstallerContext struct {
@@ -19,8 +19,8 @@ type InstallerContext struct {
 	httpsProxy    string
 	noProxy       string
 	log           *log.Logger
-	lagoon        engine.Engine
-	lagoonError   error
+	ekara         engine.Engine
+	ekaraError    error
 	ef            *util.ExchangeFolder
 	session       *engine.EngineSession
 	buffer        map[string]ansible.Buffer
@@ -55,5 +55,5 @@ func (c *InstallerContext) getBuffer(p *util.FolderPath) ansible.Buffer {
 }
 
 func (c *InstallerContext) BuildBaseParam(nodeSetId string, provider string) ansible.BaseParam {
-	return ansible.BuildBaseParam(c.lagoon.Environment().QualifiedName(), nodeSetId, provider, c.sshPublicKey, c.sshPrivateKey)
+	return ansible.BuildBaseParam(c.ekara.Environment().QualifiedName(), nodeSetId, provider, c.sshPublicKey, c.sshPrivateKey)
 }

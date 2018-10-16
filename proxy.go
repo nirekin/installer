@@ -1,7 +1,7 @@
 package installer
 
 import (
-	"github.com/lagoon-platform/engine"
+	"github.com/ekara-platform/engine"
 )
 
 // fproxy loads the proxy settings form the environmant variables into the

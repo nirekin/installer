@@ -45,7 +45,7 @@ func runCreate(c *InstallerContext) ExecutionReport {
 		flocation,
 		fcliparam,
 		fekara,
-		ffailOnLagoonError,
+		ffailOnEkaraError,
 		fsession,
 		fSHKeys,
 		fsetup,
@@ -522,7 +522,7 @@ func fekara(c *InstallerContext) stepContexts {
 	}
 	// Note: here we are not taking in account the "c.ekaraError != nil" to place the error
 	// into the context because this error managment depends on the whole process
-	// and will be treated if required by the "ffailOnLagoonError" step
+	// and will be treated if required by the "ffailOnEkaraError" step
 	return sc.Array()
 }
 
@@ -537,7 +537,7 @@ func repositoryFlavor(url string) (string, string) {
 	return url, ""
 }
 
-func ffailOnLagoonError(c *InstallerContext) stepContexts {
+func ffailOnEkaraError(c *InstallerContext) stepContexts {
 	sc := InitStepContext("Stopping the process in case of validation errors", nil, noCleanUpRequired)
 	if c.ekaraError != nil {
 		vErrs, ok := c.ekaraError.(model.ValidationErrors)

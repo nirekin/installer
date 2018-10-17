@@ -16,7 +16,7 @@ func TestInstallerFail(t *testing.T) {
 	assert.NotNil(t, sc.ErrorOrigin)
 	assert.Equal(t, sc.Error.Error(), "DUMMY_ERROR")
 	assert.Equal(t, sc.ErrorDetail, "DUMMY_DETAILS")
-	assert.Equal(t, sc.ErrorOrigin.Localize(), originLagoonInstaller.Localize())
+	assert.Equal(t, sc.ErrorOrigin.Localize(), originEkaraInstaller.Localize())
 
 }
 

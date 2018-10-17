@@ -49,7 +49,7 @@ func TestChildExchangeFolderKo(t *testing.T) {
 	assert.True(t, ko)
 	assert.NotNil(t, subEf)
 	assert.Equal(t, sc.ErrorDetail, "")
-	assert.Equal(t, sc.ErrorOrigin, originLagoonInstaller)
+	assert.Equal(t, sc.ErrorOrigin, originEkaraInstaller)
 	assert.NotNil(t, sc.Error)
 
 }

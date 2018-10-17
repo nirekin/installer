@@ -15,11 +15,11 @@ type ErrorLocalizer interface {
 }
 
 const (
-	originLagoonInstaller       simpleErrorOrigin = "Lagoon Installer"
+	originEkaraInstaller        simpleErrorOrigin = "Ekara Installer"
 	originEnvironmentDescriptor simpleErrorOrigin = "Environment descriptor"
 )
 
-var InstallerFail = failOn(originLagoonInstaller)
+var InstallerFail = failOn(originEkaraInstaller)
 var DescriptorFail = failOn(originEnvironmentDescriptor)
 
 func failOn(log ErrorLocalizer) func(sc *stepContext, err error, detail string) {

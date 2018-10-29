@@ -41,6 +41,7 @@ func runCreate(c *InstallerContext) ExecutionReport {
 	// Stack of functions required to create an environment
 	calls := []step{
 		fproxy,
+		fqualifiedName,
 		fexchangeFoldef,
 		flocation,
 		fcliparam,
@@ -64,6 +65,7 @@ func runCheck(c *InstallerContext) ExecutionReport {
 	// Stack of functions required to check an environment
 	calls := []step{
 		fproxy,
+		fqualifiedName,
 		fexchangeFoldef,
 		flocation,
 		fcliparam,
@@ -553,6 +555,22 @@ func ffailOnEkaraError(c *InstallerContext) stepContexts {
 			goto MoveOut
 		}
 	}
+MoveOut:
+	return sc.Array()
+}
+
+// fqualifiedName extracts the qualified environment name from the
+// environment variable "engine.StarterEnvQualifiedVariableKey"
+func fqualifiedName(c *InstallerContext) stepContexts {
+	c.log.Println("In fqualifiedName")
+	sc := InitStepContext("Reading the descriptor location", nil, noCleanUpRequired)
+	c.qualifiedName = os.Getenv(util.StarterEnvQualifiedVariableKey)
+	c.log.Printf("In fqualifiedName, name: %s", c.qualifiedName)
+	if c.qualifiedName == "" {
+		InstallerFail(&sc, fmt.Errorf(ERROR_REQUIRED_ENV, util.StarterEnvQualifiedVariableKey), "")
+		goto MoveOut
+	}
+	c.log.Printf("Getting environment qualified name %s", c.qualifiedName)
 MoveOut:
 	return sc.Array()
 }

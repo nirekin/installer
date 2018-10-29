@@ -12,7 +12,9 @@ type InstallerContext struct {
 	// The environment descriptor location
 	location string
 	// The environment descriptor name
-	name          string
+	name string
+
+	qualifiedName string
 	sshPublicKey  string
 	sshPrivateKey string
 	httpProxy     string

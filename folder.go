@@ -11,7 +11,7 @@ func fexchangeFoldef(c *InstallerContext) stepContexts {
 	var err error
 	c.ef, err = util.CreateExchangeFolder(util.InstallerVolume, "")
 	if err != nil {
-		InstallerFail(&sc, fmt.Errorf(ERROR_CREATING_EXCHANGE_FOLDER, "ekara_installer", err.Error()), "")
+		InstallerFail(&sc, fmt.Errorf(ERROR_CREATING_EXCHANGE_FOLDER, c.qualifiedName, err.Error()), "")
 	}
 	return sc.Array()
 }

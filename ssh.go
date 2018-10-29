@@ -16,7 +16,7 @@ import (
 //		NOT; they will be generated and then loaded into the context
 //
 func fSHKeys(c *InstallerContext) stepContexts {
-	sc := InitStepContext("Generation the SSH keys", nil, noCleanUpRequired)
+	sc := InitStepContext("Generating the SSH keys", nil, noCleanUpRequired)
 	var generate bool
 	if c.ef.Input.Contains(util.SSHPuplicKeyFileName) && c.ef.Input.Contains(util.SSHPrivateKeyFileName) {
 		c.sshPublicKey = filepath.Join(c.ef.Input.Path(), util.SSHPuplicKeyFileName)

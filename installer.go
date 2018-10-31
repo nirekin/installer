@@ -424,8 +424,8 @@ func forchestrator(c *InstallerContext) stepContexts {
 		bp := c.BuildBaseParam(uid, p.Name)
 		bp.AddNamedMap("orchestrator", n.Orchestrator.OrchestratorParams())
 
-		// TODO removed this hardcoded AWS
-		pr := c.ekara.Environment().Providers["aws"].Proxy
+		// TODO check how to clean all proxies
+		pr := c.ekara.Environment().Providers[p.Name].Proxy
 		bp.AddInterface("proxy", pr)
 		bp.AddBuffer(buffer)
 
@@ -520,7 +520,7 @@ func fekara(c *InstallerContext) stepContexts {
 	}
 
 	if c.ekaraError == nil {
-		c.ekaraError = c.ekara.Init(root, flavor)
+		c.ekaraError = c.ekara.Init(root, flavor, c.name)
 	}
 	// Note: here we are not taking in account the "c.ekaraError != nil" to place the error
 	// into the context because this error managment depends on the whole process
@@ -562,15 +562,12 @@ MoveOut:
 // fqualifiedName extracts the qualified environment name from the
 // environment variable "engine.StarterEnvQualifiedVariableKey"
 func fqualifiedName(c *InstallerContext) stepContexts {
-	c.log.Println("In fqualifiedName")
 	sc := InitStepContext("Reading the descriptor location", nil, noCleanUpRequired)
 	c.qualifiedName = os.Getenv(util.StarterEnvQualifiedVariableKey)
-	c.log.Printf("In fqualifiedName, name: %s", c.qualifiedName)
 	if c.qualifiedName == "" {
 		InstallerFail(&sc, fmt.Errorf(ERROR_REQUIRED_ENV, util.StarterEnvQualifiedVariableKey), "")
 		goto MoveOut
 	}
-	c.log.Printf("Getting environment qualified name %s", c.qualifiedName)
 MoveOut:
 	return sc.Array()
 }

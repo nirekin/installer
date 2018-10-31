@@ -15,7 +15,7 @@ type EkaraMock struct {
 	Env model.Environment
 }
 
-func (d EkaraMock) Init(repo string, ref string) error {
+func (d EkaraMock) Init(repo string, ref string, descriptor string) error {
 	return nil
 }
 func (d EkaraMock) Environment() model.Environment {

@@ -2,7 +2,6 @@ package installer
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/ekara-platform/engine/ssh"
@@ -50,29 +49,30 @@ func fSHKeys(c *InstallerContext) stepContexts {
 	MoveOut:
 		// If the keys have been generated then they should be cleaned in case
 		// of subsequent errors
-		sc.CleanUp = func(c *InstallerContext) func(c *InstallerContext) error {
-			return func(c *InstallerContext) (err error) {
-				if c.log != nil {
-					c.log.Println("Running fSHKeys cleanup")
-					c.log.Printf("Cleaning %s", c.sshPublicKey)
-				}
+		/*
+			sc.CleanUp = func(c *InstallerContext) func(c *InstallerContext) error {
+				return func(c *InstallerContext) (err error) {
+					if c.log != nil {
+						c.log.Println("Running fSHKeys cleanup")
+						c.log.Printf("Cleaning %s", c.sshPublicKey)
+					}
 
-				err = os.Remove(c.sshPublicKey)
-				if err != nil {
+					err = os.Remove(c.sshPublicKey)
+					if err != nil {
+						return
+					}
+					if c.log != nil {
+						c.log.Printf("Cleaning %s", c.sshPrivateKey)
+					}
+
+					err = os.Remove(c.sshPrivateKey)
+					if err != nil {
+						return
+					}
 					return
 				}
-				if c.log != nil {
-					c.log.Printf("Cleaning %s", c.sshPrivateKey)
-				}
-
-				err = os.Remove(c.sshPrivateKey)
-				if err != nil {
-					return
-				}
-				return
-			}
-		}(c)
-
+			}(c)
+		*/
 		return sc.Array()
 	}
 

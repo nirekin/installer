@@ -45,6 +45,9 @@ func (r stepContext) MarshalJSON() ([]byte, error) {
 
 		if r.ErrorOrigin != nil {
 			s.Error.Origin = r.ErrorOrigin.Localize()
+			bs, _ := json.Marshal(r.ErrorOrigin)
+			s.Error.Content = string(bs)
+			s.Error.Source = r.ErrorOrigin.Source()
 		}
 
 	} else {

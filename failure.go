@@ -8,10 +8,13 @@ type EngineError struct {
 	Message         string `json:",omitempty"`
 	DetailedMessage string `json:",omitempty"`
 	Origin          string `json:",omitempty"`
+	Content         string `json:",omitempty"`
+	Source          string `json:",omitempty"`
 }
 
 type ErrorLocalizer interface {
 	Localize() string
+	Source() string
 }
 
 const (
@@ -36,14 +39,20 @@ func (c simpleErrorOrigin) Localize() string {
 	return string(c)
 }
 
+func (c simpleErrorOrigin) Source() string {
+	return "Code"
+}
+
 type playBookErrorOrigin struct {
-	Playbook    string
-	Compoment   string
-	Code        int
-	Context     string
-	ContextName string
+	Playbook  string
+	Compoment string
+	Code      int
 }
 
 func (p playBookErrorOrigin) Localize() string {
 	return fmt.Sprintf("Playbook: %s in component %s returned %d", p.Playbook, p.Compoment, p.Code)
+}
+
+func (p playBookErrorOrigin) Source() string {
+	return "playbook"
 }

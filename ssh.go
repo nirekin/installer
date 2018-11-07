@@ -14,8 +14,8 @@ import (
 //		YES; they will be loaded into the context
 //		NOT; they will be generated and then loaded into the context
 //
-func fSHKeys(c *InstallerContext) stepContexts {
-	sc := InitStepContext("Generating the SSH keys", nil, noCleanUpRequired)
+func fSHKeys(c *InstallerContext) stepResults {
+	sc := InitCodeStepResult("Generating the SSH keys", nil, noCleanUpRequired)
 	var generate bool
 	if c.ef.Input.Contains(util.SSHPuplicKeyFileName) && c.ef.Input.Contains(util.SSHPrivateKeyFileName) {
 		c.sshPublicKey = filepath.Join(c.ef.Input.Path(), util.SSHPuplicKeyFileName)
@@ -30,17 +30,17 @@ func fSHKeys(c *InstallerContext) stepContexts {
 	if generate {
 		publicKey, privateKey, e := ssh.Generate()
 		if e != nil {
-			InstallerFail(&sc, fmt.Errorf(ERROR_GENERATING_SSH_KEYS, e.Error()), "An error occured generating the keys :v")
+			FailsOnCode(&sc, fmt.Errorf(ERROR_GENERATING_SSH_KEYS, e.Error()), "An error occured generating the keys :v", nil)
 			goto MoveOut
 		}
 		_, e = util.SaveFile(c.log, *c.ef.Input, util.SSHPuplicKeyFileName, publicKey)
 		if e != nil {
-			InstallerFail(&sc, e, fmt.Sprintf("An error occured saving the public key into :%v", c.ef.Input.Path()))
+			FailsOnCode(&sc, e, fmt.Sprintf("An error occured saving the public key into :%v", c.ef.Input.Path()), nil)
 			goto MoveOut
 		}
 		_, e = util.SaveFile(c.log, *c.ef.Input, util.SSHPrivateKeyFileName, privateKey)
 		if e != nil {
-			InstallerFail(&sc, e, fmt.Sprintf("An error occured saving the private key into :%v", c.ef.Input.Path()))
+			FailsOnCode(&sc, e, fmt.Sprintf("An error occured saving the private key into :%v", c.ef.Input.Path()), nil)
 			goto MoveOut
 		}
 		c.sshPublicKey = filepath.Join(c.ef.Input.Path(), util.SSHPuplicKeyFileName)

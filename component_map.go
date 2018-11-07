@@ -6,10 +6,10 @@ import (
 	"github.com/ekara-platform/engine/util"
 )
 
-func saveComponentMap(c *InstallerContext, dest *util.FolderPath, sc *stepContext) bool {
+func saveComponentMap(c *InstallerContext, dest *util.FolderPath, sr *stepResult) bool {
 	e := c.ekara.ComponentManager().SaveComponentsPaths(c.log, *dest)
 	if e != nil {
-		InstallerFail(sc, e, fmt.Sprintf("An error occured saving the components file into :%v", dest.Path()))
+		FailsOnCode(sr, e, fmt.Sprintf("An error occured saving the components file into :%v", dest.Path()), nil)
 		return true
 	}
 	return false

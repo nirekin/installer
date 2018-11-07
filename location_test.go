@@ -17,7 +17,7 @@ func TestNoLocation(t *testing.T) {
 	os.Unsetenv(util.StarterEnvVariableKey)
 	os.Setenv(util.StarterEnvNameVariableKey, "test_name")
 	sc := flocation(c)
-	e := sc.Contexts[0].Error
+	e := sc.Results[0].error
 	assert.NotNil(t, e)
 	assert.Equal(t, e.Error(), "the environment variable \"EKARA_ENV_DESCR\" should be defined")
 }
@@ -29,7 +29,7 @@ func TestNoName(t *testing.T) {
 	os.Unsetenv(util.StarterEnvNameVariableKey)
 	os.Setenv(util.StarterEnvVariableKey, "test_location")
 	sc := flocation(c)
-	e := sc.Contexts[0].Error
+	e := sc.Results[0].error
 	assert.NotNil(t, e)
 	assert.Equal(t, e.Error(), "the environment variable \"EKARA_ENV_DESCR_NAME\" should be defined")
 }
@@ -41,7 +41,7 @@ func TestLocation(t *testing.T) {
 	os.Setenv(util.StarterEnvVariableKey, "test_location")
 	os.Setenv(util.StarterEnvNameVariableKey, "test_name")
 	sc := flocation(c)
-	e := sc.Contexts[0].Error
+	e := sc.Results[0].error
 	assert.Nil(t, e)
 	assert.Equal(t, c.location, "test_location")
 	assert.Equal(t, c.name, "test_name")

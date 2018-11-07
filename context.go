@@ -27,6 +27,7 @@ type InstallerContext struct {
 	session       *engine.EngineSession
 	buffer        map[string]ansible.Buffer
 	cliparams     ansible.ParamContent
+	report        ReportFileContent
 }
 
 func CreateContext(l *log.Logger) *InstallerContext {

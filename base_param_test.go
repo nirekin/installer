@@ -19,7 +19,7 @@ func TestSaveBaseParamOk(t *testing.T) {
 
 	assert.Nil(t, e)
 
-	sc := InitStepContext("DummyStep", nil, noCleanUpRequired)
+	sc := InitCodeStepResult("DummyStep", nil, noCleanUpRequired)
 	c := InstallerContext{
 		ef:            ef,
 		log:           log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds),
@@ -35,9 +35,11 @@ func TestSaveBaseParamOk(t *testing.T) {
 	bp := c.BuildBaseParam("nodeId", "providerName")
 	ko := saveBaseParams(bp, &c, ef.Input, &sc)
 	assert.False(t, ko)
-	assert.Equal(t, sc.ErrorDetail, "")
-	assert.Nil(t, sc.Error)
-	assert.Nil(t, sc.ErrorOrigin)
+
+	assert.Nil(t, sc.error)
+	assert.Equal(t, sc.ErrorMessage, "")
+	assert.Equal(t, string(sc.FailureCause), "")
+	assert.Equal(t, string(sc.Status), string(STEP_STATUS_SUCCESS))
 
 	ok, _, err := ef.Input.ContainsParamYaml()
 	assert.True(t, ok)

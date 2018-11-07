@@ -1,58 +1,49 @@
 package installer
 
 import (
-	"fmt"
+	"encoding/json"
 )
 
-type EngineError struct {
-	Message         string `json:",omitempty"`
-	DetailedMessage string `json:",omitempty"`
-	Origin          string `json:",omitempty"`
-	Content         string `json:",omitempty"`
-	Source          string `json:",omitempty"`
-}
+type (
+	// Type used to identify the cause of the failure
+	failureCause string
 
-type ErrorLocalizer interface {
-	Localize() string
-	Source() string
-}
+	// Detail of a playbook execution failure
+	playBookFailureDetail struct {
+		// The name of the playbook
+		Playbook string
+		// The compoment holding the playbook
+		Compoment string
+		// The ansible return code
+		Code int
+	}
+)
 
 const (
-	originEkaraInstaller        simpleErrorOrigin = "Ekara Installer"
-	originEnvironmentDescriptor simpleErrorOrigin = "Environment descriptor"
+	// Failure due to an Ekara code execution error
+	CODE_FAILURE failureCause = "Code"
+	// Failure due to a invalid environment descriptor content
+	DESCRIPTOR_FAILURE failureCause = "Descriptor"
+	// Failure due to a playbook execution error
+	PLAYBOOK_FAILURE failureCause = "PlayBook"
 )
 
-var InstallerFail = failOn(originEkaraInstaller)
-var DescriptorFail = failOn(originEnvironmentDescriptor)
+var FailsOnCode = failOn(CODE_FAILURE)
+var FailsOnDescriptor = failOn(DESCRIPTOR_FAILURE)
+var FailsOnPlaybook = failOn(PLAYBOOK_FAILURE)
 
-func failOn(log ErrorLocalizer) func(sc *stepContext, err error, detail string) {
-	return func(sc *stepContext, err error, detail string) {
-		sc.Error = err
-		sc.ErrorDetail = detail
-		sc.ErrorOrigin = log
+func failOn(fc failureCause) func(sr *stepResult, err error, detail string, content interface{}) {
+	return func(sr *stepResult, err error, detail string, content interface{}) {
+		sr.FailureCause = fc
+		sr.error = err
+		if err != nil {
+			sr.ErrorMessage = err.Error()
+		}
+		sr.ReadableMessage = detail
+		sr.Status = STEP_STATUS_FAILURE
+		if content != nil {
+			bs, _ := json.Marshal(content)
+			sr.RawContent = string(bs)
+		}
 	}
-}
-
-type simpleErrorOrigin string
-
-func (c simpleErrorOrigin) Localize() string {
-	return string(c)
-}
-
-func (c simpleErrorOrigin) Source() string {
-	return "Code"
-}
-
-type playBookErrorOrigin struct {
-	Playbook  string
-	Compoment string
-	Code      int
-}
-
-func (p playBookErrorOrigin) Localize() string {
-	return fmt.Sprintf("Playbook: %s in component %s returned %d", p.Playbook, p.Compoment, p.Code)
-}
-
-func (p playBookErrorOrigin) Source() string {
-	return "playbook"
 }

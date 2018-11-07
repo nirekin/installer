@@ -14,6 +14,8 @@ const (
 	ERROR_GENERIC                  string = "An error occurred  %s:"
 	ERROR_ADDING_EXCHANGE_FOLDER   string = "An error occurred adding the exchange folder %s: %s"
 	ERROR_CREATING_EXCHANGE_FOLDER string = "An error occurred creating the exchange folder %s: %s"
+	ERROR_READING_REPORT           string = "error reading the report file \"%s\", error \"%s\""
+	ERROR_UNMARSHALLING_REPORT     string = "error Unmarshalling the report file \"%s\", error \"%s\""
 
 	// Log messages
 	LOG_STARTING             string = "Starting the installer..."

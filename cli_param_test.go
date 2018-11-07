@@ -30,7 +30,7 @@ func TestReadingParam(t *testing.T) {
 	}
 
 	sc := fcliparam(c)
-	assert.Nil(t, sc.Contexts[0].Error)
+	assert.Nil(t, sc.Results[0].error)
 	cParam := c.cliparams
 	assert.NotNil(t, cParam)
 	assert.Equal(t, len(cParam), 1)

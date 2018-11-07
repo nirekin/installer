@@ -4,31 +4,103 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ekara-platform/model"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestInitStep(t *testing.T) {
+func TestApplyTo(t *testing.T) {
 
-	s := InitStepContext("stepName", nil, noCleanUpRequired)
-	assert.NotNil(t, s)
-	assert.Nil(t, s.AppliedTo)
-	assert.Nil(t, s.Error)
-	assert.Equal(t, s.ErrorDetail, "")
-	assert.Equal(t, s.StepName, "stepName")
+	p := model.Provider{Name: "toName"}
 
-	a := s.Array()
-	assert.Equal(t, len(a.Contexts), 1)
+	sc := InitCodeStepResult("stepName", p, noCleanUpRequired)
+	assert.NotNil(t, sc)
+	assert.Equal(t, sc.AppliedToType, "Provider")
+	assert.Equal(t, sc.AppliedToName, "toName")
 
 }
 
-func TestInitSteps(t *testing.T) {
+func TestInitCodeStep(t *testing.T) {
 
-	s := InitStepContexts()
-	assert.Equal(t, len(s.Contexts), 0)
-	s.Add(InitStepContext("stepName1", nil, noCleanUpRequired))
-	assert.Equal(t, len(s.Contexts), 1)
-	s.Add(InitStepContext("stepName2", nil, noCleanUpRequired))
-	assert.Equal(t, len(s.Contexts), 2)
+	sc := InitCodeStepResult("stepName", nil, noCleanUpRequired)
+	assert.NotNil(t, sc)
+	assert.Equal(t, sc.StepName, "stepName")
+	assert.Equal(t, sc.AppliedToName, "")
+	assert.Equal(t, sc.AppliedToType, "")
+	assert.Equal(t, sc.Context, STEP_CONTEXT_CODE)
+	assert.NotNil(t, sc.cleanUp)
+	checkNoError(t, sc)
+
+	a := sc.Array()
+	assert.Equal(t, len(a.Results), 1)
+
+}
+
+func TestInitDescriptorStep(t *testing.T) {
+
+	sc := InitDescriptorStepResult("stepName", nil, noCleanUpRequired)
+	assert.NotNil(t, sc)
+	assert.Equal(t, sc.StepName, "stepName")
+	assert.Equal(t, sc.AppliedToType, "")
+	assert.Equal(t, sc.AppliedToName, "")
+	assert.Equal(t, sc.Context, STEP_CONTEXT_DESCRIPTOR)
+	assert.NotNil(t, sc.cleanUp)
+	checkNoError(t, sc)
+
+	a := sc.Array()
+	assert.Equal(t, len(a.Results), 1)
+
+}
+
+func TestInitParamStep(t *testing.T) {
+
+	sc := InitParameterStepResult("stepName", nil, noCleanUpRequired)
+	assert.NotNil(t, sc)
+	assert.Equal(t, sc.StepName, "stepName")
+	assert.Equal(t, sc.AppliedToType, "")
+	assert.Equal(t, sc.AppliedToName, "")
+	assert.Equal(t, sc.Context, STEP_CONTEXT_PARAMETER_FILE)
+	assert.NotNil(t, sc.cleanUp)
+	checkNoError(t, sc)
+
+	a := sc.Array()
+	assert.Equal(t, len(a.Results), 1)
+
+}
+
+func TestInitPlaybookStep(t *testing.T) {
+
+	sc := InitPlaybookStepResult("stepName", nil, noCleanUpRequired)
+	assert.NotNil(t, sc)
+	assert.Equal(t, sc.StepName, "stepName")
+	assert.Equal(t, sc.AppliedToType, "")
+	assert.Equal(t, sc.AppliedToName, "")
+	assert.Equal(t, sc.Context, STEP_CONTEXT_PLABOOK)
+	assert.NotNil(t, sc.cleanUp)
+	checkNoError(t, sc)
+
+	a := sc.Array()
+	assert.Equal(t, len(a.Results), 1)
+
+}
+
+func checkNoError(t *testing.T, sc stepResult) {
+	assert.Equal(t, sc.Status, STEP_STATUS_SUCCESS)
+	assert.Equal(t, string(sc.FailureCause), "")
+	assert.Nil(t, sc.error)
+	assert.Equal(t, sc.ErrorMessage, "")
+	assert.Equal(t, sc.ReadableMessage, "")
+	assert.Nil(t, sc.RawContent)
+
+}
+
+func TestInitResults(t *testing.T) {
+
+	s := InitStepResults()
+	assert.Equal(t, len(s.Results), 0)
+	s.Add(InitCodeStepResult("stepName1", nil, noCleanUpRequired))
+	assert.Equal(t, len(s.Results), 1)
+	s.Add(InitCodeStepResult("stepName2", nil, noCleanUpRequired))
+	assert.Equal(t, len(s.Results), 2)
 
 }
 
@@ -41,13 +113,13 @@ func TestLaunchSteps(t *testing.T) {
 	rep := launch(calls, &InstallerContext{})
 	assert.NotNil(t, rep)
 	assert.Nil(t, rep.Error)
-	scs := rep.Steps.Contexts
-	assert.Equal(t, len(scs), 3)
+	srs := rep.Steps.Results
+	assert.Equal(t, len(srs), 3)
 
 	// Check the order of the executed steps
-	assert.Equal(t, scs[0].StepName, "Dummy step 1")
-	assert.Equal(t, scs[1].StepName, "Dummy step 2")
-	assert.Equal(t, scs[2].StepName, "Dummy step 3")
+	assert.Equal(t, srs[0].StepName, "Dummy step 1")
+	assert.Equal(t, srs[1].StepName, "Dummy step 2")
+	assert.Equal(t, srs[2].StepName, "Dummy step 3")
 }
 
 func TestLaunchStepsError(t *testing.T) {
@@ -60,14 +132,14 @@ func TestLaunchStepsError(t *testing.T) {
 	rep := launch(calls, &InstallerContext{})
 	assert.NotNil(t, rep)
 	assert.NotNil(t, rep.Error)
-	scs := rep.Steps.Contexts
-	assert.Equal(t, len(scs), 4)
+	srs := rep.Steps.Results
+	assert.Equal(t, len(srs), 4)
 
 	// Check the order of the executed steps
-	assert.Equal(t, scs[0].StepName, "Dummy step 1")
-	assert.Equal(t, scs[1].StepName, "Dummy step 2")
-	assert.Equal(t, scs[2].StepName, "Dummy step 3")
-	assert.Equal(t, scs[3].StepName, "Dummy step on error")
+	assert.Equal(t, srs[0].StepName, "Dummy step 1")
+	assert.Equal(t, srs[1].StepName, "Dummy step 2")
+	assert.Equal(t, srs[2].StepName, "Dummy step 3")
+	assert.Equal(t, srs[3].StepName, "Dummy step on error")
 
 }
 
@@ -83,13 +155,13 @@ func TestLaunchStepsError2(t *testing.T) {
 	assert.NotNil(t, rep.Error)
 	// Because fStepMockError throws an error fStepMock3 is not invoked and
 	// then it is never returned into the report
-	scs := rep.Steps.Contexts
-	assert.Equal(t, len(scs), 3)
+	srs := rep.Steps.Results
+	assert.Equal(t, len(srs), 3)
 
 	// Check the order of the executed steps
-	assert.Equal(t, scs[0].StepName, "Dummy step 1")
-	assert.Equal(t, scs[1].StepName, "Dummy step 2")
-	assert.Equal(t, scs[2].StepName, "Dummy step on error")
+	assert.Equal(t, srs[0].StepName, "Dummy step 1")
+	assert.Equal(t, srs[1].StepName, "Dummy step 2")
+	assert.Equal(t, srs[2].StepName, "Dummy step on error")
 
 }
 
@@ -103,7 +175,7 @@ func TestLaunchStepsMultiples(t *testing.T) {
 	rep := launch(calls, &InstallerContext{})
 	assert.NotNil(t, rep)
 	assert.Nil(t, rep.Error)
-	scs := rep.Steps.Contexts
+	scs := rep.Steps.Results
 	assert.Equal(t, len(scs), 6)
 	// Check the order of the executed steps
 	assert.Equal(t, scs[0].StepName, "Dummy step 1")
@@ -114,31 +186,31 @@ func TestLaunchStepsMultiples(t *testing.T) {
 	assert.Equal(t, scs[5].StepName, "Dummy step, multiple 3")
 }
 
-func fStepMock1(c *InstallerContext) stepContexts {
-	sc := InitStepContext("Dummy step 1", nil, noCleanUpRequired)
+func fStepMock1(c *InstallerContext) stepResults {
+	sc := InitCodeStepResult("Dummy step 1", nil, noCleanUpRequired)
 	return sc.Array()
 }
 
-func fStepMock2(c *InstallerContext) stepContexts {
-	sc := InitStepContext("Dummy step 2", nil, noCleanUpRequired)
+func fStepMock2(c *InstallerContext) stepResults {
+	sc := InitCodeStepResult("Dummy step 2", nil, noCleanUpRequired)
 	return sc.Array()
 }
 
-func fStepMock3(c *InstallerContext) stepContexts {
-	sc := InitStepContext("Dummy step 3", nil, noCleanUpRequired)
+func fStepMock3(c *InstallerContext) stepResults {
+	sc := InitCodeStepResult("Dummy step 3", nil, noCleanUpRequired)
 	return sc.Array()
 }
 
-func fStepMockError(c *InstallerContext) stepContexts {
-	sc := InitStepContext("Dummy step on error", nil, noCleanUpRequired)
-	sc.Error = fmt.Errorf("Dummy error")
+func fStepMockError(c *InstallerContext) stepResults {
+	sc := InitCodeStepResult("Dummy step on error", nil, noCleanUpRequired)
+	sc.error = fmt.Errorf("Dummy error")
 	return sc.Array()
 }
 
-func fStepMockMultipleContext(c *InstallerContext) stepContexts {
-	scs := InitStepContexts()
-	scs.Add(InitStepContext("Dummy step, multiple 1", nil, noCleanUpRequired))
-	scs.Add(InitStepContext("Dummy step, multiple 2", nil, noCleanUpRequired))
-	scs.Add(InitStepContext("Dummy step, multiple 3", nil, noCleanUpRequired))
-	return *scs
+func fStepMockMultipleContext(c *InstallerContext) stepResults {
+	srs := InitStepResults()
+	srs.Add(InitCodeStepResult("Dummy step, multiple 1", nil, noCleanUpRequired))
+	srs.Add(InitCodeStepResult("Dummy step, multiple 2", nil, noCleanUpRequired))
+	srs.Add(InitCodeStepResult("Dummy step, multiple 3", nil, noCleanUpRequired))
+	return *srs
 }

@@ -19,7 +19,7 @@ func TestSaveComponentMapOk(t *testing.T) {
 
 	assert.Nil(t, e)
 
-	sc := InitStepContext("DummyStep", nil, noCleanUpRequired)
+	sc := InitCodeStepResult("DummyStep", nil, noCleanUpRequired)
 	c := InstallerContext{
 		ef:            ef,
 		log:           log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds),
@@ -35,9 +35,17 @@ func TestSaveComponentMapOk(t *testing.T) {
 
 	ko := saveComponentMap(&c, ef.Input, &sc)
 	assert.False(t, ko)
-	assert.Equal(t, sc.ErrorDetail, "")
-	assert.Nil(t, sc.Error)
-	assert.Nil(t, sc.ErrorOrigin)
+
+	assert.Equal(t, sc.StepName, "DummyStep")
+	assert.Equal(t, sc.AppliedToType, "")
+	assert.Equal(t, sc.AppliedToName, "")
+	assert.Equal(t, sc.Status, STEP_STATUS_SUCCESS)
+	assert.Equal(t, sc.Context, STEP_CONTEXT_CODE)
+	assert.Equal(t, string(sc.FailureCause), "")
+	assert.Nil(t, sc.error)
+	assert.Equal(t, sc.ErrorMessage, "")
+	assert.Equal(t, sc.ReadableMessage, "")
+	assert.Nil(t, sc.RawContent)
 
 	ok := ef.Input.Contains(util.ComponentPathsFileName)
 	assert.True(t, ok)

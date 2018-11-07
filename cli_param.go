@@ -7,13 +7,13 @@ import (
 	"github.com/ekara-platform/engine/util"
 )
 
-func fcliparam(c *InstallerContext) stepContexts {
-	sc := InitStepContext("Reading substitution parameters", nil, noCleanUpRequired)
+func fcliparam(c *InstallerContext) stepResults {
+	sc := InitParameterStepResult("Reading substitution parameters", nil, noCleanUpRequired)
 	ok := c.ef.Location.Contains(util.CliParametersFileName)
 	if ok {
 		p, e := ansible.ParseParams(util.JoinPaths(c.ef.Location.Path(), util.CliParametersFileName))
 		if e != nil {
-			InstallerFail(&sc, fmt.Errorf(ERROR_LOADING_CLI_PARAMETERS, e), "")
+			FailsOnCode(&sc, e, fmt.Sprintf(ERROR_LOADING_CLI_PARAMETERS, e), nil)
 			goto MoveOut
 		}
 		c.cliparams = p

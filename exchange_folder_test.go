@@ -20,14 +20,22 @@ func TestChildExchangeFolderOk(t *testing.T) {
 	assert.Nil(t, e)
 
 	log := log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
-	sc := InitStepContext("DummyStep", nil, noCleanUpRequired)
+	sc := InitCodeStepResult("DummyStep", nil, noCleanUpRequired)
 
 	subEf, ko := createChildExchangeFolder(ef.Input, "subTestFolder", &sc, log)
 	assert.False(t, ko)
 	assert.NotNil(t, subEf)
-	assert.Equal(t, sc.ErrorDetail, "")
-	assert.Nil(t, sc.Error)
-	assert.Nil(t, sc.ErrorOrigin)
+
+	assert.Equal(t, sc.StepName, "DummyStep")
+	assert.Equal(t, sc.AppliedToType, "")
+	assert.Equal(t, sc.AppliedToName, "")
+	assert.Equal(t, sc.Status, STEP_STATUS_SUCCESS)
+	assert.Equal(t, sc.Context, STEP_CONTEXT_CODE)
+	assert.Equal(t, string(sc.FailureCause), "")
+	assert.Nil(t, sc.error)
+	assert.Equal(t, sc.ErrorMessage, "")
+	assert.Equal(t, sc.ReadableMessage, "")
+	assert.Nil(t, sc.RawContent)
 
 	_, err := os.Stat(subEf.Location.Path())
 	assert.Nil(t, err)
@@ -43,13 +51,19 @@ func TestChildExchangeFolderKo(t *testing.T) {
 	// We are not calling ef.Create() in order to get an error creating the child
 
 	log := log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
-	sc := InitStepContext("DummyStep", nil, noCleanUpRequired)
+	sc := InitCodeStepResult("DummyStep", nil, noCleanUpRequired)
 
 	subEf, ko := createChildExchangeFolder(ef.Input, "subTestFolfer", &sc, log)
 	assert.True(t, ko)
 	assert.NotNil(t, subEf)
-	assert.Equal(t, sc.ErrorDetail, "")
-	assert.Equal(t, sc.ErrorOrigin, originEkaraInstaller)
-	assert.NotNil(t, sc.Error)
+
+	assert.Equal(t, sc.StepName, "DummyStep")
+	assert.Equal(t, sc.AppliedToType, "")
+	assert.Equal(t, sc.AppliedToName, "")
+	assert.Equal(t, sc.Status, STEP_STATUS_FAILURE)
+	assert.Equal(t, sc.Context, STEP_CONTEXT_CODE)
+	assert.Equal(t, sc.FailureCause, CODE_FAILURE)
+	assert.NotNil(t, sc.error)
+	assert.Nil(t, sc.RawContent)
 
 }

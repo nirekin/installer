@@ -126,7 +126,7 @@ func fsetup(c *InstallerContext) stepResults {
 		sc := InitPlaybookStepResult("Running the setup phase", p, noCleanUpRequired)
 		c.log.Printf(LOG_RUNNING_SETUP_FOR, p.Name)
 
-		c.log.Printf("--> Check if the report file has been loaded %s", c.report)
+		c.log.Printf("--> Check if the report file has failure %v", c.report.hasFailure())
 
 		// Provider setup exchange folder
 		setupProviderEf, ko := createChildExchangeFolder(c.ef.Input, "setup_provider_"+p.Name, &sc, c.log)
@@ -579,7 +579,7 @@ func freport(c *InstallerContext) stepResults {
 		c.log.Println("A report file from a previous execution has been located")
 		b, err := ioutil.ReadFile(util.JoinPaths(c.ef.Output.Path(), REPORT_OUTPUT_FILE))
 		if err != nil {
-			FailsOnCode(&sc, err, fmt.Sprintf(ERROR_READING_REPORT, REPORT_OUTPUT_FILE), nil)
+			FailsOnCode(&sc, err, fmt.Sprintf(ERROR_READING_REPORT, REPORT_OUTPUT_FILE, err.Error()), nil)
 			goto MoveOut
 		}
 
@@ -587,7 +587,7 @@ func freport(c *InstallerContext) stepResults {
 
 		err = json.Unmarshal(b, &report)
 		if err != nil {
-			FailsOnCode(&sc, err, fmt.Sprintf(ERROR_UNMARSHALLING_REPORT, REPORT_OUTPUT_FILE), nil)
+			FailsOnCode(&sc, err, fmt.Sprintf(ERROR_UNMARSHALLING_REPORT, REPORT_OUTPUT_FILE, err.Error()), nil)
 			goto MoveOut
 		}
 		c.report = report

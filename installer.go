@@ -126,7 +126,8 @@ func fsetup(c *InstallerContext) stepResults {
 		sc := InitPlaybookStepResult("Running the setup phase", p, noCleanUpRequired)
 		c.log.Printf(LOG_RUNNING_SETUP_FOR, p.Name)
 
-		c.log.Printf("--> Check if the report file has failure %v", c.report.hasFailure())
+		hf, _ := c.report.hasFailure()
+		c.log.Printf("--> Check if the report file has failure %v", hf)
 
 		// Provider setup exchange folder
 		setupProviderEf, ko := createChildExchangeFolder(c.ef.Input, "setup_provider_"+p.Name, &sc, c.log)

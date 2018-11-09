@@ -18,12 +18,14 @@ const (
 	ERROR_UNMARSHALLING_REPORT     string = "error Unmarshalling the report file \"%s\", error \"%s\""
 
 	// Log messages
-	LOG_STARTING             string = "Starting the installer..."
-	LOG_RUNNING              string = "Running the installer..."
-	LOG_INSTALLER_MODE       string = "Installer in creation mode: %v"
-	LOG_CREATION_FOR_CLIENT  string = "Installer creating for the client: %s"
-	LOG_PROCESSING_NODE      string = "Processing node: %s"
-	LOG_EXTRAVARS_FOR_CLIENT string = "ExtraVars for client %s : %s"
+	LOG_STARTING                  string = "Starting the installer..."
+	LOG_RUNNING                   string = "Running the installer..."
+	LOG_INSTALLER_MODE            string = "Installer in creation mode: %v"
+	LOG_CREATION_FOR_CLIENT       string = "Installer creating for the client: %s"
+	LOG_PROCESSING_NODE           string = "Processing node: %s"
+	LOG_EXTRAVARS_FOR_CLIENT      string = "ExtraVars for client %s : %s"
+	LOG_PROCESSING_STACK_PLAYBOOK string = "Processing playbook for stack: %s on node: %s"
+	LOG_PROCESSING_STACK_COMPOSE  string = "Processing Docker Compose for stack: %s on node: %s"
 
 	LOG_ACTION_CREATE string = "Action Create asked"
 	LOG_ACTION_CHECK  string = "Action Check asked"

@@ -46,6 +46,10 @@ func (m AMMock) Execute(component model.Component, playbook string, extraVars an
 	return nil, 0
 }
 
+func (m AMMock) Contains(component model.Component, playbook string) bool {
+	return true
+}
+
 type CMMock struct {
 	// TODO This mock should be deleted once the logic content of the installer has been
 	// refactored and moved into the engine

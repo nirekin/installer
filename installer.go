@@ -59,6 +59,7 @@ func runCreate(c *InstallerContext) ExecutionReport {
 		fsetuporchestrator,
 		fconsumesetuporchestrator,
 		forchestrator,
+		fstack,
 	}
 	return launch(calls, c)
 }
@@ -473,6 +474,106 @@ func forchestrator(c *InstallerContext) stepResults {
 		sCs.Add(sc)
 	}
 	return *sCs
+}
+
+func fstack(c *InstallerContext) stepResults {
+	c.log.Println("GBE --> fstack")
+	sCs := InitStepResults()
+	for _, s := range c.ekara.Environment().Stacks {
+		// Check if the stacks holds an "install.yml" playbook
+		if ok := c.ekara.AnsibleManager().Contains(s.Component.Resolve(), "install.yml"); ok {
+			c.log.Println("GBE --> with playbook")
+			fstackPlabook(c, s, sCs)
+		} else {
+			c.log.Println("GBE --> with compose")
+			fstackCompose(c, s, sCs)
+		}
+	}
+	return *sCs
+}
+
+func fstackPlabook(c *InstallerContext, s model.Stack, sCs *stepResults) {
+	for _, n := range c.ekara.Environment().NodeSets {
+		// Check if the nodeset requires the stack
+		for _, v := range s.On.NodeSets {
+			if v.Name == n.Name {
+				goto Install
+			}
+		}
+		goto Next
+
+	Install:
+		{
+			sc := InitPlaybookStepResult("Running the stack playbook installation phase", model.ChainDescribable(s, n), noCleanUpRequired)
+
+			// Stack install exchange folder
+			fName := fmt.Sprintf("install_stack_%s_on_%s", s.Name, n.Name)
+
+			p := n.Provider.Resolve()
+
+			// Provider setup exchange folder
+			setupProviderEf := c.ef.Input.Children["setup_provider_"+p.Name]
+			// We check if we have a buffer corresponding to the provider setup
+			bufferPro := c.getBuffer(setupProviderEf.Output)
+
+			// We use an empty buffer because no one is coming from the previous step
+			buffer := ansible.CreateBuffer()
+
+			stackEf, ko := createChildExchangeFolder(c.ef.Input, fName, &sc, c.log)
+			if ko {
+				sCs.Add(sc)
+				continue
+			}
+
+			// Prepare environment variables
+			env := ansible.BuildEnvVars()
+			env.Add("http_proxy", c.httpProxy)
+			env.Add("https_proxy", c.httpsProxy)
+			env.AddBuffer(buffer)
+
+			// ugly but .... TODO change this
+			env.AddBuffer(bufferPro)
+
+			// Prepare extra vars
+			exv := ansible.BuildExtraVars("", *stackEf.Input, *stackEf.Output, buffer)
+
+			inventory := ""
+			if len(bufferPro.Inventories) > 0 {
+				inventory = bufferPro.Inventories["inventory_path"]
+			}
+
+			// We launch the playbook
+			err, code := c.ekara.AnsibleManager().Execute(s.Component.Resolve(), "install.yml", exv, env, inventory)
+			if err != nil {
+				pfd := playBookFailureDetail{
+					Playbook:  "install.yml",
+					Compoment: p.Component.Resolve().Id,
+					Code:      code,
+				}
+				FailsOnPlaybook(&sc, err, "An error occured executing the playbook", pfd)
+				sCs.Add(sc)
+				continue
+			}
+			if ko {
+				sCs.Add(sc)
+				continue
+			}
+
+			sCs.Add(sc)
+		}
+	Next:
+		continue
+	}
+}
+
+func fstackCompose(c *InstallerContext, s model.Stack, sCs *stepResults) {
+	for _, n := range c.ekara.Environment().Stacks {
+		sc := InitPlaybookStepResult("Running the stack Docker Compose installation phase", model.ChainDescribable(s, n), noCleanUpRequired)
+		c.log.Printf(LOG_PROCESSING_STACK_COMPOSE, s.Name, n.Name)
+		err := fmt.Errorf("The Ekara plaform is not ready yet to install stacks using Docker Compose")
+		FailsOnNotImplemented(&sc, err, "", nil)
+		sCs.Add(sc)
+	}
 }
 
 func flogCheck(c *InstallerContext) stepResults {

@@ -21,6 +21,9 @@ type (
 
 const (
 	// Failure due to an Ekara code execution error
+	NOT_IMPLEMENTED_FAILURE failureCause = "NotImplemented"
+
+	// Failure due to an Ekara code execution error
 	CODE_FAILURE failureCause = "Code"
 	// Failure due to a invalid environment descriptor content
 	DESCRIPTOR_FAILURE failureCause = "Descriptor"
@@ -28,6 +31,7 @@ const (
 	PLAYBOOK_FAILURE failureCause = "PlayBook"
 )
 
+var FailsOnNotImplemented = failOn(NOT_IMPLEMENTED_FAILURE)
 var FailsOnCode = failOn(CODE_FAILURE)
 var FailsOnDescriptor = failOn(DESCRIPTOR_FAILURE)
 var FailsOnPlaybook = failOn(PLAYBOOK_FAILURE)

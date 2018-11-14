@@ -17,13 +17,13 @@
     "ssh",
     "util"
   ]
-  revision = "d17cbaa5b1504439e2e7b9c1f85d41a59fd76a25"
+  revision = "ba40c33ffb64553dbd8d06e454929b400e1b25dd"
 
 [[projects]]
   branch = "master"
   name = "github.com/ekara-platform/model"
   packages = ["."]
-  revision = "d8357cc6a39da18323513981dd4c118f280066c2"
+  revision = "e7285304cd7701c349b4185689588a425c04f833"
 
 [[projects]]
   name = "github.com/emirpasic/gods"

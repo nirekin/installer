@@ -24,7 +24,6 @@ type InstallerContext struct {
 	ekara         engine.Engine
 	ekaraError    error
 	ef            *util.ExchangeFolder
-	session       *engine.EngineSession
 	buffer        map[string]ansible.Buffer
 	cliparams     ansible.ParamContent
 	report        ReportFileContent
@@ -57,6 +56,6 @@ func (c *InstallerContext) getBuffer(p *util.FolderPath) ansible.Buffer {
 	return ansible.CreateBuffer()
 }
 
-func (c *InstallerContext) BuildBaseParam(nodeSetId string, provider string) ansible.BaseParam {
-	return ansible.BuildBaseParam(c.ekara.Environment().QualifiedName(), nodeSetId, provider, c.sshPublicKey, c.sshPrivateKey)
+func (c *InstallerContext) BuildBaseParam(nodeSetName string, provider string) ansible.BaseParam {
+	return ansible.BuildBaseParam(c.ekara.ComponentManager().Environment(), nodeSetName, provider, c.sshPublicKey, c.sshPrivateKey)
 }

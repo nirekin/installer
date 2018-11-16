@@ -1,6 +1,7 @@
 package installer
 
 import (
+	"log"
 	"testing"
 
 	"github.com/ekara-platform/model"
@@ -26,9 +27,14 @@ func TestBaseParamFromContext(t *testing.T) {
 	assert.True(t, ok)
 	mSi, ok := val.(map[string]interface{})
 	assert.True(t, ok)
-	assert.Equal(t, 2, len(mSi))
-	assert.Equal(t, "NameContent_QualifierContent", mSi["name"])
-	assert.Equal(t, "nodeId", mSi["uid"])
+
+	log.Printf("--> MSI params : %v", mSi)
+
+	assert.Equal(t, 4, len(mSi))
+	assert.Equal(t, "NameContent_QualifierContent_nodeId", mSi["id"])
+	assert.Equal(t, "NameContent", mSi["name"])
+	assert.Equal(t, "QualifierContent", mSi["qualifier"])
+	assert.Equal(t, "nodeId", mSi["nodeset"])
 
 	val, ok = bp.Body["connectionConfig"]
 	assert.True(t, ok)
@@ -56,7 +62,7 @@ func TestBaseAlmostEmptyParamFromContext(t *testing.T) {
 	mSi, ok := val.(map[string]interface{})
 	assert.True(t, ok)
 	assert.Equal(t, 1, len(mSi))
-	assert.Equal(t, "nodeId", mSi["uid"])
+	assert.Equal(t, "nodeId", mSi["nodeset"])
 
 	val, ok = bp.Body["connectionConfig"]
 	assert.True(t, ok)

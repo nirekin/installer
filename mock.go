@@ -22,7 +22,7 @@ func (d EkaraMock) Environment() model.Environment {
 	return d.Env
 }
 func (d EkaraMock) ComponentManager() component.ComponentManager {
-	return CMMock{}
+	return CMMock{env: d.Env}
 }
 
 func (d EkaraMock) AnsibleManager() ansible.AnsibleManager {
@@ -53,10 +53,20 @@ func (m AMMock) Contains(component model.Component, playbook string) bool {
 type CMMock struct {
 	// TODO This mock should be deleted once the logic content of the installer has been
 	// refactored and moved into the engine
+	env model.Environment
 }
 
-func (m CMMock) RegisterComponent(c model.Component) {
+func (m CMMock) RegisterComponent(c model.Component, s string) {
 	return
+}
+
+func (m CMMock) Environment() model.Environment {
+	return m.env
+}
+
+func (m CMMock) MatchingDirectories(dirName string) []string {
+	result := make([]string, 0)
+	return result
 }
 
 func (m CMMock) ComponentPath(cId string) string {

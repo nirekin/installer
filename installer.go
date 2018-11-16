@@ -50,7 +50,6 @@ func runCreate(c *InstallerContext) ExecutionReport {
 		freport,
 		fekara,
 		ffailOnEkaraError,
-		fsession,
 		fSHKeys,
 		fsetup,
 		fconsumesetup,
@@ -79,56 +78,14 @@ func runCheck(c *InstallerContext) ExecutionReport {
 	return launch(calls, c)
 }
 
-func fsession(c *InstallerContext) stepResults {
-	sc := InitCodeStepResult("Checking the execution session", nil, noCleanUpRequired)
-	// Check if a session already exists
-	var createSession *engine.CreationSession
-
-	b, s := engine.HasCreationSession(*c.ef)
-	if !b {
-		createSession = &engine.CreationSession{Client: c.ekara.Environment().QualifiedName().String(), Uids: make(map[string]string)}
-	} else {
-		createSession = s.CreationSession
-	}
-
-	// If needed creates the missing Uids for the nodes
-	for _, n := range c.ekara.Environment().NodeSets {
-		if val, ok := createSession.Uids[n.Name]; ok {
-			c.log.Printf(LOG_REUSING_UID_FOR_CLIENT, val, c.ekara.Environment().QualifiedName(), n.Name)
-		} else {
-			uid := engine.GetUId()
-			c.log.Printf(LOG_CREATING_UID_FOR_CLIENT, uid, c.ekara.Environment().QualifiedName(), n.Name)
-			createSession.Add(n.Name, uid)
-		}
-	}
-	by, e := createSession.Content()
-	if e != nil {
-		FailsOnCode(&sc, e, fmt.Sprintf("An error occured marshalling the session content :%v", createSession), nil)
-		goto MoveOut
-	}
-	{
-		f, e := util.SaveFile(c.log, *c.ef.Location, util.CreationSessionFileName, by)
-		if e != nil {
-			FailsOnCode(&sc, e, fmt.Sprintf("An error occured saving the session file into :%v", c.ef.Location.Path()), nil)
-			goto MoveOut
-		}
-		c.session = &engine.EngineSession{
-			CreationSession: createSession,
-			File:            f,
-		}
-	}
-MoveOut:
-	return sc.Array()
-}
-
 func fsetup(c *InstallerContext) stepResults {
 	sCs := InitStepResults()
-	for _, p := range c.ekara.Environment().Providers {
+	for _, p := range c.ekara.ComponentManager().Environment().Providers {
 		sc := InitPlaybookStepResult("Running the setup phase", p, noCleanUpRequired)
 		c.log.Printf(LOG_RUNNING_SETUP_FOR, p.Name)
 
-		hf, _ := c.report.hasFailure()
-		c.log.Printf("--> Check if the report file has failure %v", hf)
+		// TEST FAILURE FOR THE --limit addition
+		//hf, _ := c.report.hasFailure()
 
 		// Provider setup exchange folder
 		setupProviderEf, ko := createChildExchangeFolder(c.ef.Input, "setup_provider_"+p.Name, &sc, c.log)
@@ -191,7 +148,7 @@ func fsetup(c *InstallerContext) stepResults {
 
 func fconsumesetup(c *InstallerContext) stepResults {
 	sCs := InitStepResults()
-	for _, p := range c.ekara.Environment().Providers {
+	for _, p := range c.ekara.ComponentManager().Environment().Providers {
 		sc := InitCodeStepResult("Consuming the setup phase", p, noCleanUpRequired)
 		c.log.Printf("Consume setup for provider %s", p.Name)
 		setupProviderEfOut := c.ef.Input.Children["setup_provider_"+p.Name].Output
@@ -210,11 +167,9 @@ func fconsumesetup(c *InstallerContext) stepResults {
 
 func fcreate(c *InstallerContext) stepResults {
 	sCs := InitStepResults()
-	for _, n := range c.ekara.Environment().NodeSets {
+	for _, n := range c.ekara.ComponentManager().Environment().NodeSets {
 		sc := InitPlaybookStepResult("Running the create phase", n, noCleanUpRequired)
 		c.log.Printf(LOG_PROCESSING_NODE, n.Name)
-		// unique id of the nodeset
-		uid := c.session.CreationSession.Uids[n.Name]
 
 		p := n.Provider.Resolve()
 
@@ -231,8 +186,9 @@ func fcreate(c *InstallerContext) stepResults {
 		}
 
 		// Prepare parameters
-		bp := c.BuildBaseParam(uid, p.Name)
+		bp := c.BuildBaseParam(n.Name, p.Name)
 		bp.AddInt("instances", n.Instances)
+		bp.AddInterface("labels", n.Labels)
 		bp.AddNamedMap("params", p.Parameters)
 		bp.AddInterface("volumes", n.Volumes)
 		bp.AddBuffer(buffer)
@@ -281,7 +237,7 @@ func fcreate(c *InstallerContext) stepResults {
 
 func fconsumecreate(c *InstallerContext) stepResults {
 	sCs := InitStepResults()
-	for _, n := range c.ekara.Environment().NodeSets {
+	for _, n := range c.ekara.ComponentManager().Environment().NodeSets {
 		sc := InitCodeStepResult("Consuming the create phase", n, noCleanUpRequired)
 		c.log.Printf("Consume create for node %s", n.Name)
 		nodeCreateEf := c.ef.Input.Children["create_"+n.Name].Output
@@ -300,11 +256,9 @@ func fconsumecreate(c *InstallerContext) stepResults {
 
 func fsetuporchestrator(c *InstallerContext) stepResults {
 	sCs := InitStepResults()
-	for _, n := range c.ekara.Environment().NodeSets {
+	for _, n := range c.ekara.ComponentManager().Environment().NodeSets {
 		sc := InitPlaybookStepResult("Running the orchestrator setup phase", n, noCleanUpRequired)
 		c.log.Printf(LOG_PROCESSING_NODE, n.Name)
-		// unique id of the nodeset
-		uid := c.session.CreationSession.Uids[n.Name]
 
 		p := n.Provider.Resolve()
 
@@ -326,8 +280,7 @@ func fsetuporchestrator(c *InstallerContext) stepResults {
 		}
 
 		// Prepare parameters
-		//bp := engine.BuilBaseParam(c.ekara.Environment().QualifiedName(), uid, p.Name, c.sshPublicKey, c.sshPrivateKey)
-		bp := c.BuildBaseParam(uid, p.Name)
+		bp := c.BuildBaseParam(n.Name, p.Name)
 		op := n.Orchestrator.OrchestratorParams()
 		bp.AddNamedMap("orchestrator", op)
 		bp.AddBuffer(buffer)
@@ -361,7 +314,7 @@ func fsetuporchestrator(c *InstallerContext) stepResults {
 		}
 
 		// We launch the playbook
-		err, code := c.ekara.AnsibleManager().Execute(c.ekara.Environment().Orchestrator.Component.Resolve(), "setup.yml", exv, env, inventory)
+		err, code := c.ekara.AnsibleManager().Execute(c.ekara.ComponentManager().Environment().Orchestrator.Component.Resolve(), "setup.yml", exv, env, inventory)
 		if err != nil {
 			pfd := playBookFailureDetail{
 				Playbook:  "setup.yml",
@@ -380,7 +333,7 @@ func fsetuporchestrator(c *InstallerContext) stepResults {
 
 func fconsumesetuporchestrator(c *InstallerContext) stepResults {
 	sCs := InitStepResults()
-	for _, n := range c.ekara.Environment().NodeSets {
+	for _, n := range c.ekara.ComponentManager().Environment().NodeSets {
 		sc := InitCodeStepResult("Consuming the orchestrator setup phase", n, noCleanUpRequired)
 		c.log.Printf("Consume orchestrator setup for node %s", n.Name)
 		setupOrcherstratorEf := c.ef.Input.Children["setup_orchestrator_"+n.Name].Output
@@ -399,10 +352,9 @@ func fconsumesetuporchestrator(c *InstallerContext) stepResults {
 
 func forchestrator(c *InstallerContext) stepResults {
 	sCs := InitStepResults()
-	for _, n := range c.ekara.Environment().NodeSets {
+	for _, n := range c.ekara.ComponentManager().Environment().NodeSets {
 		sc := InitPlaybookStepResult("Running the orchestrator installation phase", n, noCleanUpRequired)
 		c.log.Printf(LOG_PROCESSING_NODE, n.Name)
-		uid := c.session.CreationSession.Uids[n.Name]
 
 		p := n.Provider.Resolve()
 
@@ -423,11 +375,12 @@ func forchestrator(c *InstallerContext) stepResults {
 		}
 
 		// Prepare parameters
-		bp := c.BuildBaseParam(uid, p.Name)
+		bp := c.BuildBaseParam(n.Name, p.Name)
+		bp.AddInterface("labels", n.Labels)
 		bp.AddNamedMap("orchestrator", n.Orchestrator.OrchestratorParams())
 
 		// TODO check how to clean all proxies
-		pr := c.ekara.Environment().Providers[p.Name].Proxy
+		pr := c.ekara.ComponentManager().Environment().Providers[p.Name].Proxy
 		bp.AddInterface("proxy", pr)
 		bp.AddBuffer(buffer)
 
@@ -460,7 +413,7 @@ func forchestrator(c *InstallerContext) stepResults {
 		}
 
 		// We launch the playbook
-		err, code := c.ekara.AnsibleManager().Execute(c.ekara.Environment().Orchestrator.Component.Resolve(), "install.yml", exv, env, inventory)
+		err, code := c.ekara.AnsibleManager().Execute(c.ekara.ComponentManager().Environment().Orchestrator.Component.Resolve(), "install.yml", exv, env, inventory)
 		if err != nil {
 			pfd := playBookFailureDetail{
 				Playbook:  "install.yml",
@@ -477,15 +430,12 @@ func forchestrator(c *InstallerContext) stepResults {
 }
 
 func fstack(c *InstallerContext) stepResults {
-	c.log.Println("GBE --> fstack")
 	sCs := InitStepResults()
-	for _, s := range c.ekara.Environment().Stacks {
+	for _, s := range c.ekara.ComponentManager().Environment().Stacks {
 		// Check if the stacks holds an "install.yml" playbook
 		if ok := c.ekara.AnsibleManager().Contains(s.Component.Resolve(), "install.yml"); ok {
-			c.log.Println("GBE --> with playbook")
 			fstackPlabook(c, s, sCs)
 		} else {
-			c.log.Println("GBE --> with compose")
 			fstackCompose(c, s, sCs)
 		}
 	}
@@ -493,81 +443,68 @@ func fstack(c *InstallerContext) stepResults {
 }
 
 func fstackPlabook(c *InstallerContext, s model.Stack, sCs *stepResults) {
-	for _, n := range c.ekara.Environment().NodeSets {
-		// Check if the nodeset requires the stack
-		for _, v := range s.On.NodeSets {
-			if v.Name == n.Name {
-				goto Install
-			}
-		}
-		goto Next
+	for _, n := range c.ekara.ComponentManager().Environment().NodeSets {
+		sc := InitPlaybookStepResult("Running the stack playbook installation phase", model.ChainDescribable(s, n), noCleanUpRequired)
 
-	Install:
-		{
-			sc := InitPlaybookStepResult("Running the stack playbook installation phase", model.ChainDescribable(s, n), noCleanUpRequired)
+		// Stack install exchange folder
+		fName := fmt.Sprintf("install_stack_%s_on_%s", s.Name, n.Name)
 
-			// Stack install exchange folder
-			fName := fmt.Sprintf("install_stack_%s_on_%s", s.Name, n.Name)
+		p := n.Provider.Resolve()
 
-			p := n.Provider.Resolve()
+		// Provider setup exchange folder
+		setupProviderEf := c.ef.Input.Children["setup_provider_"+p.Name]
+		// We check if we have a buffer corresponding to the provider setup
+		bufferPro := c.getBuffer(setupProviderEf.Output)
 
-			// Provider setup exchange folder
-			setupProviderEf := c.ef.Input.Children["setup_provider_"+p.Name]
-			// We check if we have a buffer corresponding to the provider setup
-			bufferPro := c.getBuffer(setupProviderEf.Output)
+		// We use an empty buffer because no one is coming from the previous step
+		buffer := ansible.CreateBuffer()
 
-			// We use an empty buffer because no one is coming from the previous step
-			buffer := ansible.CreateBuffer()
-
-			stackEf, ko := createChildExchangeFolder(c.ef.Input, fName, &sc, c.log)
-			if ko {
-				sCs.Add(sc)
-				continue
-			}
-
-			// Prepare environment variables
-			env := ansible.BuildEnvVars()
-			env.Add("http_proxy", c.httpProxy)
-			env.Add("https_proxy", c.httpsProxy)
-			env.AddBuffer(buffer)
-
-			// ugly but .... TODO change this
-			env.AddBuffer(bufferPro)
-
-			// Prepare extra vars
-			exv := ansible.BuildExtraVars("", *stackEf.Input, *stackEf.Output, buffer)
-
-			inventory := ""
-			if len(bufferPro.Inventories) > 0 {
-				inventory = bufferPro.Inventories["inventory_path"]
-			}
-
-			// We launch the playbook
-			err, code := c.ekara.AnsibleManager().Execute(s.Component.Resolve(), "install.yml", exv, env, inventory)
-			if err != nil {
-				pfd := playBookFailureDetail{
-					Playbook:  "install.yml",
-					Compoment: p.Component.Resolve().Id,
-					Code:      code,
-				}
-				FailsOnPlaybook(&sc, err, "An error occured executing the playbook", pfd)
-				sCs.Add(sc)
-				continue
-			}
-			if ko {
-				sCs.Add(sc)
-				continue
-			}
-
+		stackEf, ko := createChildExchangeFolder(c.ef.Input, fName, &sc, c.log)
+		if ko {
 			sCs.Add(sc)
+			continue
 		}
-	Next:
-		continue
+
+		// Prepare environment variables
+		env := ansible.BuildEnvVars()
+		env.Add("http_proxy", c.httpProxy)
+		env.Add("https_proxy", c.httpsProxy)
+		env.AddBuffer(buffer)
+
+		// ugly but .... TODO change this
+		env.AddBuffer(bufferPro)
+
+		// Prepare extra vars
+		exv := ansible.BuildExtraVars("", *stackEf.Input, *stackEf.Output, buffer)
+
+		inventory := ""
+		if len(bufferPro.Inventories) > 0 {
+			inventory = bufferPro.Inventories["inventory_path"]
+		}
+
+		// We launch the playbook
+		err, code := c.ekara.AnsibleManager().Execute(s.Component.Resolve(), "install.yml", exv, env, inventory)
+		if err != nil {
+			pfd := playBookFailureDetail{
+				Playbook:  "install.yml",
+				Compoment: p.Component.Resolve().Id,
+				Code:      code,
+			}
+			FailsOnPlaybook(&sc, err, "An error occured executing the playbook", pfd)
+			sCs.Add(sc)
+			continue
+		}
+		if ko {
+			sCs.Add(sc)
+			continue
+		}
+
+		sCs.Add(sc)
 	}
 }
 
 func fstackCompose(c *InstallerContext, s model.Stack, sCs *stepResults) {
-	for _, n := range c.ekara.Environment().Stacks {
+	for _, n := range c.ekara.ComponentManager().Environment().Stacks {
 		sc := InitPlaybookStepResult("Running the stack Docker Compose installation phase", model.ChainDescribable(s, n), noCleanUpRequired)
 		c.log.Printf(LOG_PROCESSING_STACK_COMPOSE, s.Name, n.Name)
 		err := fmt.Errorf("The Ekara plaform is not ready yet to install stacks using Docker Compose")

@@ -17,13 +17,13 @@
     "ssh",
     "util"
   ]
-  revision = "ba40c33ffb64553dbd8d06e454929b400e1b25dd"
+  revision = "d1f267bfade6b4a1f68f6cb04886e39b295cc3f9"
 
 [[projects]]
   branch = "master"
   name = "github.com/ekara-platform/model"
   packages = ["."]
-  revision = "e7285304cd7701c349b4185689588a425c04f833"
+  revision = "92187237d77141a08a3f207352c0d5424dc2422b"
 
 [[projects]]
   name = "github.com/emirpasic/gods"
@@ -37,12 +37,6 @@
   ]
   revision = "1615341f118ae12f353cc8a983f35b584342c9b3"
   version = "v1.12.0"
-
-[[projects]]
-  name = "github.com/imdario/mergo"
-  packages = ["."]
-  revision = "9f23e2d6bd2a77f959b2bf6acdbefd708a83a4a4"
-  version = "v0.3.6"
 
 [[projects]]
   branch = "master"

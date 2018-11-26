@@ -129,12 +129,24 @@ func fsetup(c *InstallerContext) stepResults {
 		}
 
 		// We launch the playbook
-		err, code := c.ekara.AnsibleManager().Execute(p.Component.Resolve(), "setup.yml", exv, env, "")
+		r, err := p.Component.Resolve()
+		if err != nil {
+			FailsOnCode(&sc, err, fmt.Sprintf("An error occured resolving the provider"), nil)
+			sCs.Add(sc)
+			continue
+		}
+		err, code := c.ekara.AnsibleManager().Execute(r, "setup.yml", exv, env, "")
 
 		if err != nil {
+			r, err := p.Component.Resolve()
+			if err != nil {
+				FailsOnCode(&sc, err, fmt.Sprintf("An error occured resolving the provider"), nil)
+				sCs.Add(sc)
+				continue
+			}
 			pfd := playBookFailureDetail{
 				Playbook:  "setup.yml",
-				Compoment: p.Component.Resolve().Id,
+				Compoment: r.Id,
 				Code:      code,
 			}
 			FailsOnPlaybook(&sc, err, "An error occured executing the playbook", pfd)
@@ -171,7 +183,12 @@ func fcreate(c *InstallerContext) stepResults {
 		sc := InitPlaybookStepResult("Running the create phase", n, noCleanUpRequired)
 		c.log.Printf(LOG_PROCESSING_NODE, n.Name)
 
-		p := n.Provider.Resolve()
+		p, err := n.Provider.Resolve()
+		if err != nil {
+			FailsOnCode(&sc, err, fmt.Sprintf("An error occured resolving the nodeset"), nil)
+			sCs.Add(sc)
+			continue
+		}
 
 		// Provider setup exchange folder
 		setupProviderEf := c.ef.Input.Children["setup_provider_"+p.Name]
@@ -219,11 +236,17 @@ func fcreate(c *InstallerContext) stepResults {
 		}
 
 		// We launch the playbook
-		err, code := c.ekara.AnsibleManager().Execute(p.Component.Resolve(), "create.yml", exv, env, inventory)
+		r, err := p.Component.Resolve()
+		if err != nil {
+			FailsOnCode(&sc, err, fmt.Sprintf("An error occured resolving the provider"), nil)
+			sCs.Add(sc)
+			continue
+		}
+		err, code := c.ekara.AnsibleManager().Execute(r, "create.yml", exv, env, inventory)
 		if err != nil {
 			pfd := playBookFailureDetail{
 				Playbook:  "create.yml",
-				Compoment: p.Component.Resolve().Id,
+				Compoment: r.Id,
 				Code:      code,
 			}
 			FailsOnPlaybook(&sc, err, "An error occured executing the playbook", pfd)
@@ -260,7 +283,12 @@ func fsetuporchestrator(c *InstallerContext) stepResults {
 		sc := InitPlaybookStepResult("Running the orchestrator setup phase", n, noCleanUpRequired)
 		c.log.Printf(LOG_PROCESSING_NODE, n.Name)
 
-		p := n.Provider.Resolve()
+		p, err := n.Provider.Resolve()
+		if err != nil {
+			FailsOnCode(&sc, err, fmt.Sprintf("An error occured resolving the nodeset"), nil)
+			sCs.Add(sc)
+			continue
+		}
 
 		// Provider setup exchange folder
 		setupProviderEf := c.ef.Input.Children["setup_provider_"+p.Name]
@@ -281,7 +309,12 @@ func fsetuporchestrator(c *InstallerContext) stepResults {
 
 		// Prepare parameters
 		bp := c.BuildBaseParam(n.Name, p.Name)
-		op := n.Orchestrator.OrchestratorParams()
+		op, err := n.Orchestrator.OrchestratorParams()
+		if err != nil {
+			FailsOnCode(&sc, err, fmt.Sprintf("An error occured getting the orchestrator parameters"), nil)
+			sCs.Add(sc)
+			continue
+		}
 		bp.AddNamedMap("orchestrator", op)
 		bp.AddBuffer(buffer)
 
@@ -314,11 +347,24 @@ func fsetuporchestrator(c *InstallerContext) stepResults {
 		}
 
 		// We launch the playbook
-		err, code := c.ekara.AnsibleManager().Execute(c.ekara.ComponentManager().Environment().Orchestrator.Component.Resolve(), "setup.yml", exv, env, inventory)
+		//TODO move this resolbe outside of the for loop
+		r, err := c.ekara.ComponentManager().Environment().Orchestrator.Component.Resolve()
 		if err != nil {
+			FailsOnCode(&sc, err, fmt.Sprintf("An error occured resolving the orchestrator"), nil)
+			sCs.Add(sc)
+			continue
+		}
+		err, code := c.ekara.AnsibleManager().Execute(r, "setup.yml", exv, env, inventory)
+		if err != nil {
+			r, err := p.Component.Resolve()
+			if err != nil {
+				FailsOnCode(&sc, err, fmt.Sprintf("An error occured resolving the provider"), nil)
+				sCs.Add(sc)
+				continue
+			}
 			pfd := playBookFailureDetail{
 				Playbook:  "setup.yml",
-				Compoment: p.Component.Resolve().Id,
+				Compoment: r.Id,
 				Code:      code,
 			}
 			FailsOnPlaybook(&sc, err, "An error occured executing the playbook", pfd)
@@ -356,7 +402,12 @@ func forchestrator(c *InstallerContext) stepResults {
 		sc := InitPlaybookStepResult("Running the orchestrator installation phase", n, noCleanUpRequired)
 		c.log.Printf(LOG_PROCESSING_NODE, n.Name)
 
-		p := n.Provider.Resolve()
+		p, err := n.Provider.Resolve()
+		if err != nil {
+			FailsOnCode(&sc, err, fmt.Sprintf("An error occured resolving the nodeset"), nil)
+			sCs.Add(sc)
+			continue
+		}
 
 		// Provider setup exchange folder
 		setupProviderEf := c.ef.Input.Children["setup_provider_"+p.Name]
@@ -377,7 +428,13 @@ func forchestrator(c *InstallerContext) stepResults {
 		// Prepare parameters
 		bp := c.BuildBaseParam(n.Name, p.Name)
 		bp.AddInterface("labels", n.Labels)
-		bp.AddNamedMap("orchestrator", n.Orchestrator.OrchestratorParams())
+		op, err := n.Orchestrator.OrchestratorParams()
+		if err != nil {
+			FailsOnCode(&sc, err, fmt.Sprintf("An error occured getting the orchestrator parameters"), nil)
+			sCs.Add(sc)
+			continue
+		}
+		bp.AddNamedMap("orchestrator", op)
 
 		// TODO check how to clean all proxies
 		pr := c.ekara.ComponentManager().Environment().Providers[p.Name].Proxy
@@ -413,11 +470,24 @@ func forchestrator(c *InstallerContext) stepResults {
 		}
 
 		// We launch the playbook
-		err, code := c.ekara.AnsibleManager().Execute(c.ekara.ComponentManager().Environment().Orchestrator.Component.Resolve(), "install.yml", exv, env, inventory)
+		//TODO move this resolve outside of the for loop
+		r, err := c.ekara.ComponentManager().Environment().Orchestrator.Component.Resolve()
 		if err != nil {
+			FailsOnCode(&sc, err, fmt.Sprintf("An error occured resolving the orchestrator"), nil)
+			sCs.Add(sc)
+			continue
+		}
+		err, code := c.ekara.AnsibleManager().Execute(r, "install.yml", exv, env, inventory)
+		if err != nil {
+			r, err := p.Component.Resolve()
+			if err != nil {
+				FailsOnCode(&sc, err, fmt.Sprintf("An error occured resolving the provider"), nil)
+				sCs.Add(sc)
+				continue
+			}
 			pfd := playBookFailureDetail{
 				Playbook:  "install.yml",
-				Compoment: p.Component.Resolve().Id,
+				Compoment: r.Id,
 				Code:      code,
 			}
 			FailsOnPlaybook(&sc, err, "An error occured executing the playbook", pfd)
@@ -432,12 +502,21 @@ func forchestrator(c *InstallerContext) stepResults {
 func fstack(c *InstallerContext) stepResults {
 	sCs := InitStepResults()
 	for _, s := range c.ekara.ComponentManager().Environment().Stacks {
+		sc := InitCodeStepResult("Starting a stack setup phase", s, noCleanUpRequired)
+		c.log.Printf("Checking how to install %s", s.Name)
 		// Check if the stacks holds an "install.yml" playbook
-		if ok := c.ekara.AnsibleManager().Contains(s.Component.Resolve(), "install.yml"); ok {
+		r, err := s.Component.Resolve()
+		if err != nil {
+			FailsOnCode(&sc, err, fmt.Sprintf("An error occured resolving the stack"), nil)
+			sCs.Add(sc)
+			continue
+		}
+		if ok := c.ekara.AnsibleManager().Contains(r, "install.yml"); ok {
 			fstackPlabook(c, s, sCs)
 		} else {
 			fstackCompose(c, s, sCs)
 		}
+		sCs.Add(sc)
 	}
 	return *sCs
 }
@@ -449,7 +528,12 @@ func fstackPlabook(c *InstallerContext, s model.Stack, sCs *stepResults) {
 		// Stack install exchange folder
 		fName := fmt.Sprintf("install_stack_%s_on_%s", s.Name, n.Name)
 
-		p := n.Provider.Resolve()
+		p, err := n.Provider.Resolve()
+		if err != nil {
+			FailsOnCode(&sc, err, fmt.Sprintf("An error occured resolving the nodeset"), nil)
+			sCs.Add(sc)
+			continue
+		}
 
 		// Provider setup exchange folder
 		setupProviderEf := c.ef.Input.Children["setup_provider_"+p.Name]
@@ -483,11 +567,23 @@ func fstackPlabook(c *InstallerContext, s model.Stack, sCs *stepResults) {
 		}
 
 		// We launch the playbook
-		err, code := c.ekara.AnsibleManager().Execute(s.Component.Resolve(), "install.yml", exv, env, inventory)
+		r, err := s.Component.Resolve()
 		if err != nil {
+			FailsOnCode(&sc, err, fmt.Sprintf("An error occured resolving the stack"), nil)
+			sCs.Add(sc)
+			continue
+		}
+		err, code := c.ekara.AnsibleManager().Execute(r, "install.yml", exv, env, inventory)
+		if err != nil {
+			r, err := p.Component.Resolve()
+			if err != nil {
+				FailsOnCode(&sc, err, fmt.Sprintf("An error occured resolving the provider"), nil)
+				sCs.Add(sc)
+				continue
+			}
 			pfd := playBookFailureDetail{
 				Playbook:  "install.yml",
-				Compoment: p.Component.Resolve().Id,
+				Compoment: r.Id,
 				Code:      code,
 			}
 			FailsOnPlaybook(&sc, err, "An error occured executing the playbook", pfd)

@@ -207,7 +207,7 @@ func fcreate(c *InstallerContext) stepResults {
 		bp.AddInt("instances", n.Instances)
 		bp.AddInterface("labels", n.Labels)
 		bp.AddNamedMap("params", p.Parameters)
-		bp.AddInterface("volumes", n.Volumes)
+		bp.AddInterface("volumes", n.Volumes.AsArray())
 		bp.AddBuffer(buffer)
 
 		if ko := saveBaseParams(bp, c, nodeCreateEf.Input, &sc); ko {

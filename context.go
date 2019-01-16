@@ -8,54 +8,79 @@ import (
 	"github.com/ekara-platform/engine/util"
 )
 
-type InstallerContext struct {
-	// The environment descriptor location
-	location string
-	// The environment descriptor name
-	name string
+type (
+	InstallerContext struct {
+		// The environment descriptor name
+		name                 string
+		logger               *log.Logger
+		efolder              *util.ExchangeFolder
+		locationContent      string
+		qualifiedNameContent string
+		httpProxyContent     string
+		httpsProxyContent    string
+		noProxyContent       string
+		sshPublicKeyContent  string
+		sshPrivateKeyContent string
+		cliparams            ansible.ParamContent
+		engine               engine.Engine
+		ekaraError           error
+	}
+)
 
-	qualifiedName string
-	sshPublicKey  string
-	sshPrivateKey string
-	httpProxy     string
-	httpsProxy    string
-	noProxy       string
-	log           *log.Logger
-	ekara         engine.Engine
-	ekaraError    error
-	ef            *util.ExchangeFolder
-	buffer        map[string]ansible.Buffer
-	cliparams     ansible.ParamContent
-	report        ReportFileContent
+func (c InstallerContext) Name() string {
+	return c.name
+}
+
+func (c InstallerContext) Log() *log.Logger {
+	return c.logger
+}
+
+func (c InstallerContext) Ef() *util.ExchangeFolder {
+	return c.efolder
+}
+
+func (c InstallerContext) Ekara() engine.Engine {
+	return c.engine
+}
+
+func (c InstallerContext) QualifiedName() string {
+	return c.qualifiedNameContent
+}
+
+func (c InstallerContext) Location() string {
+	return c.locationContent
+}
+
+func (c InstallerContext) HttpProxy() string {
+	return c.httpProxyContent
+}
+
+func (c InstallerContext) HttpsProxy() string {
+	return c.httpsProxyContent
+}
+
+func (c InstallerContext) NoProxy() string {
+	return c.noProxyContent
+}
+
+func (c InstallerContext) SshPublicKey() string {
+	return c.sshPublicKeyContent
+}
+
+func (c InstallerContext) SshPrivateKey() string {
+	return c.sshPrivateKeyContent
+}
+
+func (c InstallerContext) Cliparams() ansible.ParamContent {
+	return c.cliparams
+}
+
+func (c InstallerContext) Error() error {
+	return c.ekaraError
 }
 
 func CreateContext(l *log.Logger) *InstallerContext {
 	c := &InstallerContext{}
-	c.buffer = make(map[string]ansible.Buffer)
-	c.log = l
+	c.logger = l
 	return c
-}
-
-func (c *InstallerContext) SetLog(l *log.Logger) {
-	c.log = l
-}
-
-func (c *InstallerContext) LogPrintln(v ...interface{}) {
-	c.log.Println(v)
-}
-
-func (c *InstallerContext) LogFatal(v ...interface{}) {
-	c.log.Fatal(v)
-}
-
-func (c *InstallerContext) getBuffer(p *util.FolderPath) ansible.Buffer {
-	// We check if we have a buffer corresponding to the provided folder path
-	if val, ok := c.buffer[p.Path()]; ok {
-		return val
-	}
-	return ansible.CreateBuffer()
-}
-
-func (c *InstallerContext) BuildBaseParam(nodeSetName string, provider string) ansible.BaseParam {
-	return ansible.BuildBaseParam(c.ekara.ComponentManager().Environment(), nodeSetName, provider, c.sshPublicKey, c.sshPrivateKey)
 }

@@ -12,31 +12,26 @@ import (
 
 func TestNoProxy(t *testing.T) {
 	c := &InstallerContext{}
-	c.log = log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
-	os.Setenv(util.ActionEnvVariableKey, engine.ActionCreate.String())
+	c.logger = log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
+	os.Setenv(util.ActionEnvVariableKey, engine.ActionCreateId.String())
 	os.Unsetenv(util.HttpProxyEnvVariableKey)
 	os.Unsetenv(util.HttpsProxyEnvVariableKey)
 	os.Unsetenv(util.NoProxyEnvVariableKey)
-
-	sc := fproxy(c)
-	e := sc.Results[0].error
-	assert.Nil(t, e)
-	assert.Equal(t, "", c.httpProxy)
-	assert.Equal(t, "", c.httpsProxy)
-	assert.Equal(t, "", c.noProxy)
+	fillProxy(c)
+	assert.Equal(t, "", c.httpProxyContent)
+	assert.Equal(t, "", c.httpsProxyContent)
+	assert.Equal(t, "", c.noProxyContent)
 }
 
 func TestProxy(t *testing.T) {
 	c := &InstallerContext{}
-	c.log = log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
-	os.Setenv(util.ActionEnvVariableKey, engine.ActionCreate.String())
+	c.logger = log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
+	os.Setenv(util.ActionEnvVariableKey, engine.ActionCreateId.String())
 	os.Setenv(util.HttpProxyEnvVariableKey, "http_value")
 	os.Setenv(util.HttpsProxyEnvVariableKey, "https_value")
 	os.Setenv(util.NoProxyEnvVariableKey, "no_value")
-	sc := fproxy(c)
-	e := sc.Results[0].error
-	assert.Nil(t, e)
-	assert.Equal(t, "http_value", c.httpProxy)
-	assert.Equal(t, "https_value", c.httpsProxy)
-	assert.Equal(t, "no_value", c.noProxy)
+	fillProxy(c)
+	assert.Equal(t, "http_value", c.httpProxyContent)
+	assert.Equal(t, "https_value", c.httpsProxyContent)
+	assert.Equal(t, "no_value", c.noProxyContent)
 }

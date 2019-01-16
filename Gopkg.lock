@@ -17,13 +17,13 @@
     "ssh",
     "util"
   ]
-  revision = "1cbf9f23c8c35167de961dd593fe926b5e526eb7"
+  revision = "0a767face84974614fdcb8d991cee4ec8ac00bbc"
 
 [[projects]]
   branch = "master"
   name = "github.com/ekara-platform/model"
   packages = ["."]
-  revision = "10ee1b2a9a586c0f275232c8b9cebeefa0bdfa0f"
+  revision = "324dbe53c036fb8bf1651c20a3e26fe85df86091"
 
 [[projects]]
   name = "github.com/emirpasic/gods"
@@ -219,6 +219,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "bda03add90ff42c45ee81af2e771d5083f13c2b1b449ac84104468cc2930137d"
+  inputs-digest = "e1e12122537063d9ee6f428567cf7677420af915ef4f0942946b3c038ebb20ca"
   solver-name = "gps-cdcl"
   solver-version = 1

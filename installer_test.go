@@ -11,8 +11,8 @@ import (
 )
 
 func TestNoAction(t *testing.T) {
-	c := &InstallerContext{}
-	c.log = log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
+	c := InstallerContext{}
+	c.logger = log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
 	os.Unsetenv(util.ActionEnvVariableKey)
 	e := Run(c)
 	assert.NotNil(t, e)
@@ -20,22 +20,21 @@ func TestNoAction(t *testing.T) {
 }
 
 func TestWrongActionUpdate(t *testing.T) {
-	c := &InstallerContext{}
-	c.log = log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
-	os.Setenv(util.ActionEnvVariableKey, engine.ActionUpdate.String())
+	c := InstallerContext{}
+	c.logger = log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
+	os.Setenv(util.ActionEnvVariableKey, engine.ActionUpdateId.String())
 	e := Run(c)
 	assert.NotNil(t, e)
-	assert.Equal(t, e.Error(), "the action \"1\" is not supported by the installer")
+	assert.Equal(t, e.Error(), "the action \"6\" is not supported by the installer")
 }
 
 func TestWrongActionDelete(t *testing.T) {
-	c := &InstallerContext{}
-	c.log = log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
-	c.log.Println()
-	os.Setenv(util.ActionEnvVariableKey, engine.ActionDelete.String())
+	c := InstallerContext{}
+	c.logger = log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
+	os.Setenv(util.ActionEnvVariableKey, engine.ActionDeleteId.String())
 	e := Run(c)
 	assert.NotNil(t, e)
-	assert.Equal(t, e.Error(), "the action \"3\" is not supported by the installer")
+	assert.Equal(t, e.Error(), "the action \"7\" is not supported by the installer")
 }
 
 func TestRepositoryFlavor(t *testing.T) {

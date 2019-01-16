@@ -4,22 +4,23 @@ import (
 	"log"
 	"testing"
 
+	"github.com/ekara-platform/engine"
 	"github.com/ekara-platform/model"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestBaseParamFromContext(t *testing.T) {
 	c := InstallerContext{
-		sshPublicKey:  "sshPublicKey_content",
-		sshPrivateKey: "sshPrivateKey_content",
-		ekara: EkaraMock{
+		sshPublicKeyContent:  "sshPublicKey_content",
+		sshPrivateKeyContent: "sshPrivateKey_content",
+		engine: engine.EkaraMock{
 			Env: model.Environment{
 				Name:      "NameContent",
 				Qualifier: "QualifierContent",
 			},
 		},
 	}
-	bp := c.BuildBaseParam("nodeId", "providerName")
+	bp := engine.BuildBaseParam(c, "nodeId", "providerName")
 	assert.NotNil(t, bp)
 	assert.Equal(t, 2, len(bp.Body))
 
@@ -48,11 +49,11 @@ func TestBaseParamFromContext(t *testing.T) {
 
 func TestBaseAlmostEmptyParamFromContext(t *testing.T) {
 	c := InstallerContext{
-		ekara: EkaraMock{
+		engine: engine.EkaraMock{
 			Env: model.Environment{},
 		},
 	}
-	bp := c.BuildBaseParam("nodeId", "providerName")
+	bp := engine.BuildBaseParam(c, "nodeId", "providerName")
 	assert.NotNil(t, bp)
 
 	assert.Equal(t, 2, len(bp.Body))
@@ -74,11 +75,11 @@ func TestBaseAlmostEmptyParamFromContext(t *testing.T) {
 
 func TestBaseEmptyParamFromContext(t *testing.T) {
 	c := InstallerContext{
-		ekara: EkaraMock{
+		engine: engine.EkaraMock{
 			Env: model.Environment{},
 		},
 	}
-	bp := c.BuildBaseParam("", "")
+	bp := engine.BuildBaseParam(c, "", "")
 	assert.NotNil(t, bp)
 
 	assert.Equal(t, 2, len(bp.Body))

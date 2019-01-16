@@ -25,14 +25,13 @@ func TestReadingParam(t *testing.T) {
 	assert.Nil(t, e)
 
 	c := &InstallerContext{
-		ef:  ef,
-		log: log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds),
+		efolder: ef,
+		logger:  log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds),
 	}
 
-	sc := fcliparam(c)
-	assert.Nil(t, sc.Results[0].error)
+	e = fillCliparam(c)
+	assert.Nil(t, e)
 	cParam := c.cliparams
 	assert.NotNil(t, cParam)
 	assert.Equal(t, len(cParam), 1)
-
 }

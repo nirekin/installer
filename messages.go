@@ -16,6 +16,7 @@ const (
 	LOG_ACTION_INSTALL string = "Action Install asked"
 	LOG_ACTION_DEPLOY  string = "Action Deploy asked"
 	LOG_ACTION_CHECK   string = "Action Check asked"
+	LOG_ACTION_DUMP    string = "Action Dump asked"
 	LOG_NO_ACTION      string = "No action specified"
 
 	LOG_SSH_PUBLIC_KEY  string = "Installer using SSH public key: %s"

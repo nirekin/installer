@@ -58,9 +58,12 @@ func Run(c InstallerContext) (e error) {
 		am.Run(engine.ActionDeployId, c)
 	case engine.ActionCheckId.String():
 		c.Log().Println(LOG_ACTION_CHECK)
-		am.Run(engine.ActionCheckId, c)
 		fillContext(&c)
 		am.Run(engine.ActionCheckId, c)
+	case engine.ActionDumpId.String():
+		c.Log().Println(LOG_ACTION_DUMP)
+		fillContext(&c)
+		am.Run(engine.ActionDumpId, c)
 	default:
 		if a == "" {
 			a = LOG_NO_ACTION
@@ -187,11 +190,11 @@ func fillSHKeys(c *InstallerContext) error {
 		}
 		_, e = util.SaveFile(c.Log(), *c.Ef().Input, util.SSHPuplicKeyFileName, publicKey)
 		if e != nil {
-			fmt.Errorf("An error occured saving the public key into :%v", c.Ef().Input.Path())
+			return fmt.Errorf("An error occured saving the public key into :%v", c.Ef().Input.Path())
 		}
 		_, e = util.SaveFile(c.Log(), *c.Ef().Input, util.SSHPrivateKeyFileName, privateKey)
 		if e != nil {
-			fmt.Errorf("An error occured saving the private key into :%v", c.Ef().Input.Path())
+			return fmt.Errorf("An error occured saving the private key into :%v", c.Ef().Input.Path())
 		}
 		c.sshPublicKeyContent = filepath.Join(c.Ef().Input.Path(), util.SSHPuplicKeyFileName)
 		c.sshPrivateKeyContent = filepath.Join(c.Ef().Input.Path(), util.SSHPrivateKeyFileName)

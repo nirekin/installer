@@ -1,6 +1,7 @@
 package installer
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"testing"
@@ -10,6 +11,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+/*
+ActionFailId ActionId 1
+ActionReportId 2
+ActionCreateId 3
+ActionInstallId 4
+ActionDeployId 5
+ActionCheckId 6
+ActionDumpId 7
+ActionUpdateId 8
+ActionDeleteId 9
+ActionNilId 10
+
+case engine.ActionCreateId.String(): 3
+case engine.ActionInstallId.String(): 4
+case engine.ActionDeployId.String(): 5
+case engine.ActionCheckId.String(): 6
+case engine.ActionDumpId.String():  7
+*/
 func TestNoAction(t *testing.T) {
 	c := InstallerContext{}
 	c.logger = log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
@@ -19,22 +38,20 @@ func TestNoAction(t *testing.T) {
 	assert.Equal(t, e.Error(), "the action \"No action specified\" is not supported by the installer")
 }
 
-func TestWrongActionUpdate(t *testing.T) {
+func checkUnsupportedAction(t *testing.T, a engine.ActionId) {
 	c := InstallerContext{}
 	c.logger = log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
-	os.Setenv(util.ActionEnvVariableKey, engine.ActionUpdateId.String())
+	os.Setenv(util.ActionEnvVariableKey, a.String())
 	e := Run(c)
 	assert.NotNil(t, e)
-	assert.Equal(t, e.Error(), "the action \"6\" is not supported by the installer")
+	assert.Equal(t, e.Error(), fmt.Sprintf("the action \"%s\" is not supported by the installer", a))
 }
 
-func TestWrongActionDelete(t *testing.T) {
-	c := InstallerContext{}
-	c.logger = log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
-	os.Setenv(util.ActionEnvVariableKey, engine.ActionDeleteId.String())
-	e := Run(c)
-	assert.NotNil(t, e)
-	assert.Equal(t, e.Error(), "the action \"7\" is not supported by the installer")
+func TestWrongActions(t *testing.T) {
+	checkUnsupportedAction(t, engine.ActionFailId)
+	checkUnsupportedAction(t, engine.ActionReportId)
+	checkUnsupportedAction(t, engine.ActionUpdateId)
+	checkUnsupportedAction(t, engine.ActionDeleteId)
 }
 
 func TestRepositoryFlavor(t *testing.T) {

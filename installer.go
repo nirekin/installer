@@ -86,7 +86,7 @@ func Run(c InstallerContext) (e error) {
 }
 
 func fillContext(c *InstallerContext) error {
-	c.Log().Println("--> GBE in fill contenxt")
+	c.Log().Println("Filling the installer context")
 	fillProxy(c)
 	if e := fillQualifiedName(c); e != nil {
 		return e
@@ -102,10 +102,8 @@ func fillContext(c *InstallerContext) error {
 	}
 	fillEkara(c)
 	if c.ekaraError != nil {
-		c.Log().Printf("--> GBE fill context Ekara error %s", c.ekaraError.Error())
+		c.Log().Printf("Error filling the installer context:  %s", c.ekaraError.Error())
 		return c.ekaraError
-	} else {
-		c.Log().Printf("--> GBE fill context No Ekara error ")
 	}
 	return nil
 }

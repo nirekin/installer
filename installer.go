@@ -22,58 +22,71 @@ func Run(c InstallerContext) (e error) {
 	c.Log().Println(LOG_RUNNING)
 	a := os.Getenv(util.ActionEnvVariableKey)
 
-	fillContext(&c)
-
 	am := engine.CreateActionManager()
 	switch a {
 	case engine.ActionCreateId.String():
 		c.Log().Println(LOG_ACTION_CREATE)
-		e := fillContext(&c)
+		// We repeat the invocation of the fillContext in each case in order
+		// to be able to throw a specific error to detect an unsupported action
+		e = fillContext(&c)
 		if e != nil {
 			return e
 		}
+
 		if e := fillSHKeys(&c); e != nil {
 			return e
 		}
 		am.Run(engine.ActionCreateId, c)
 	case engine.ActionInstallId.String():
 		c.Log().Println(LOG_ACTION_INSTALL)
-		e := fillContext(&c)
+		e = fillContext(&c)
 		if e != nil {
 			return e
 		}
+
 		if e := fillSHKeys(&c); e != nil {
 			return e
 		}
 		am.Run(engine.ActionInstallId, c)
 	case engine.ActionDeployId.String():
 		c.Log().Println(LOG_ACTION_DEPLOY)
-		e := fillContext(&c)
+		e = fillContext(&c)
 		if e != nil {
 			return e
 		}
+
 		if e := fillSHKeys(&c); e != nil {
 			return e
 		}
 		am.Run(engine.ActionDeployId, c)
 	case engine.ActionCheckId.String():
 		c.Log().Println(LOG_ACTION_CHECK)
-		fillContext(&c)
+		e = fillContext(&c)
+		if e != nil {
+			return e
+		}
+
 		am.Run(engine.ActionCheckId, c)
 	case engine.ActionDumpId.String():
 		c.Log().Println(LOG_ACTION_DUMP)
-		fillContext(&c)
+		e = fillContext(&c)
+		if e != nil {
+			return e
+		}
+
 		am.Run(engine.ActionDumpId, c)
 	default:
 		if a == "" {
 			a = LOG_NO_ACTION
 		}
+		// Bad luck; unsupported action!
 		e = fmt.Errorf(ERROR_UNSUPORTED_ACTION, a)
 	}
 	return
 }
 
 func fillContext(c *InstallerContext) error {
+	c.Log().Println("--> GBE in fill contenxt")
 	fillProxy(c)
 	if e := fillQualifiedName(c); e != nil {
 		return e
@@ -88,6 +101,12 @@ func fillContext(c *InstallerContext) error {
 		return e
 	}
 	fillEkara(c)
+	if c.ekaraError != nil {
+		c.Log().Printf("--> GBE fill context Ekara error %s", c.ekaraError.Error())
+		return c.ekaraError
+	} else {
+		c.Log().Printf("--> GBE fill context No Ekara error ")
+	}
 	return nil
 }
 

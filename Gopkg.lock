@@ -17,13 +17,13 @@
     "ssh",
     "util"
   ]
-  revision = "3676dd89e8b910f4847360124b0854a87093184f"
+  revision = "dfdf8c6e3cf3750d91e7c9b38befdad62359b7a1"
 
 [[projects]]
   branch = "master"
   name = "github.com/ekara-platform/model"
   packages = ["."]
-  revision = "ea92bec26e7663497946567031821336d8ba1b2d"
+  revision = "65d1fa6d92915dea8ef541801993a4c0d944a275"
 
 [[projects]]
   name = "github.com/emirpasic/gods"
@@ -53,8 +53,8 @@
 [[projects]]
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
-  revision = "ae18d6b8b3205b561c79e8e5f69bff09736185f4"
-  version = "v1.0.0"
+  revision = "af06845cf3004701891bf4fdb884bfe4920b3727"
+  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/pelletier/go-buffruneio"
@@ -88,14 +88,14 @@
 [[projects]]
   name = "github.com/stretchr/testify"
   packages = ["assert"]
-  revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
-  version = "v1.2.2"
+  revision = "ffdc059bfe9ce6a4e144ba849dbedead332c6053"
+  version = "v1.3.0"
 
 [[projects]]
   name = "github.com/xanzy/ssh-agent"
   packages = ["."]
-  revision = "640f0ab560aeb89d523bb6ac322b1244d5c3796c"
-  version = "v0.2.0"
+  revision = "6a3e2ff9e7c564f36873c2e36413f634534f1c44"
+  version = "v0.2.1"
 
 [[projects]]
   branch = "master"
@@ -118,32 +118,23 @@
     "ssh/agent",
     "ssh/knownhosts"
   ]
-  revision = "e4dc69e5b2fd71dcaf8bd5d054eb936deb78d1fa"
+  revision = "c2843e01d9a2bc60bb26ad24e09734fdc2d9ec58"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context"]
-  revision = "a544f70c90f196e50d198126db0c4cb2b562fec0"
+  revision = "d8887717615a059821345a5c23649351b52a1c0b"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = ["windows"]
-  revision = "3a76605856fddce5718553cbb8bd50ca492a7274"
-
-[[projects]]
-  name = "golang.org/x/text"
   packages = [
-    "internal/gen",
-    "internal/triegen",
-    "internal/ucd",
-    "transform",
-    "unicode/cldr",
-    "unicode/norm"
+    "cpu",
+    "unix",
+    "windows"
   ]
-  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
-  version = "v0.3.0"
+  revision = "fead79001313d15903fb4605b4a1b781532cd93e"
 
 [[projects]]
   name = "gopkg.in/src-d/go-billy.v4"
@@ -163,6 +154,7 @@
     ".",
     "config",
     "internal/revision",
+    "internal/url",
     "plumbing",
     "plumbing/cache",
     "plumbing/filemode",
@@ -201,8 +193,8 @@
     "utils/merkletrie/internal/frame",
     "utils/merkletrie/noder"
   ]
-  revision = "cd64b4d630b6c2d2b3d72e9615e14f9d58bb5787"
-  version = "v4.7.1"
+  revision = "db6c41c156481962abf9a55a324858674c25ab08"
+  version = "v4.10.0"
 
 [[projects]]
   name = "gopkg.in/warnings.v0"
@@ -213,12 +205,12 @@
 [[projects]]
   name = "gopkg.in/yaml.v2"
   packages = ["."]
-  revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
-  version = "v2.2.1"
+  revision = "51d6538a90f86fe93ac480b35f37b2be17fef232"
+  version = "v2.2.2"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e1e12122537063d9ee6f428567cf7677420af915ef4f0942946b3c038ebb20ca"
+  inputs-digest = "ea19cc66f9708e448399c5d24fec55554dd59ea20e41831c959174ad1a135fe1"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -33,6 +33,10 @@ func TestNoAction(t *testing.T) {
 	c := InstallerContext{}
 	c.logger = log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
 	os.Unsetenv(util.ActionEnvVariableKey)
+	os.Setenv(util.StarterEnvQualifiedVariableKey, "DummyName")
+	os.Setenv(util.StarterEnvVariableKey, "DummyDescriptor")
+	os.Setenv(util.StarterEnvNameVariableKey, "DummyDescriptorName")
+
 	e := Run(c)
 	assert.NotNil(t, e)
 	assert.Equal(t, e.Error(), "the action \"No action specified\" is not supported by the installer")
@@ -42,12 +46,17 @@ func checkUnsupportedAction(t *testing.T, a engine.ActionId) {
 	c := InstallerContext{}
 	c.logger = log.New(os.Stdout, "Test", log.Ldate|log.Ltime|log.Lmicroseconds)
 	os.Setenv(util.ActionEnvVariableKey, a.String())
+
 	e := Run(c)
 	assert.NotNil(t, e)
 	assert.Equal(t, e.Error(), fmt.Sprintf("the action \"%s\" is not supported by the installer", a))
 }
 
 func TestWrongActions(t *testing.T) {
+	os.Setenv(util.StarterEnvQualifiedVariableKey, "DummyName")
+	os.Setenv(util.StarterEnvVariableKey, "DummyDescriptor")
+	os.Setenv(util.StarterEnvNameVariableKey, "DummyDescriptorName")
+
 	checkUnsupportedAction(t, engine.ActionFailId)
 	checkUnsupportedAction(t, engine.ActionReportId)
 	checkUnsupportedAction(t, engine.ActionUpdateId)
